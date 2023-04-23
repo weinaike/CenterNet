@@ -4,27 +4,31 @@ from __future__ import print_function
 
 from .sample.ddd import DddDataset
 from .sample.exdet import EXDetDataset
-from .sample.ctdet import CTDetDataset
+# from .sample.ctdet import CTDetDataset
 from .sample.multi_pose import MultiPoseDataset
+from .sample.ctdet_point import CTDetPointDataset
 
 from .dataset.coco import COCO
 from .dataset.pascal import PascalVOC
 from .dataset.kitti import KITTI
 from .dataset.coco_hp import COCOHP
+from .dataset.point import PointOTF
 
 
 dataset_factory = {
   'coco': COCO,
   'pascal': PascalVOC,
   'kitti': KITTI,
-  'coco_hp': COCOHP
+  'coco_hp': COCOHP,
+  'point':PointOTF
 }
 
 _sample_factory = {
   'exdet': EXDetDataset,
-  'ctdet': CTDetDataset,
+  # 'ctdet': CTDetDataset,
   'ddd': DddDataset,
-  'multi_pose': MultiPoseDataset
+  'multi_pose': MultiPoseDataset,
+  'ctdet':CTDetPointDataset
 }
 
 

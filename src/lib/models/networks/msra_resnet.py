@@ -112,7 +112,7 @@ class PoseResNet(nn.Module):
         self.heads = heads
 
         super(PoseResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
         self.relu = nn.ReLU(inplace=True)
@@ -220,9 +220,11 @@ class PoseResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.deconv_layers(x)
+        # print("1",x.size())
         ret = {}
         for head in self.heads:
             ret[head] = self.__getattr__(head)(x)
+            # print("2",ret[head].size())
         return [ret]
 
     def init_weights(self, num_layers, pretrained=True):
@@ -262,7 +264,7 @@ class PoseResNet(nn.Module):
         else:
             print('=> imagenet pretrained model dose not exist')
             print('=> please download it first')
-            raise ValueError('imagenet pretrained model does not exist')
+            # raise ValueError('imagenet pretrained model does not exist')
 
 
 resnet_spec = {18: (BasicBlock, [2, 2, 2, 2]),
@@ -276,5 +278,5 @@ def get_pose_net(num_layers, heads, head_conv):
   block_class, layers = resnet_spec[num_layers]
 
   model = PoseResNet(block_class, layers, heads, head_conv=head_conv)
-  model.init_weights(num_layers, pretrained=True)
+  model.init_weights(num_layers, pretrained=False)
   return model

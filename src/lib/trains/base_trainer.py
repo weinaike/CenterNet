@@ -16,7 +16,7 @@ class ModelWithLoss(torch.nn.Module):
     self.loss = loss
   
   def forward(self, batch):
-    outputs = self.model(batch['input'])
+    outputs = self.model(batch['input'].float())
     loss, loss_stats = self.loss(outputs, batch)
     return outputs[-1], loss, loss_stats
 
@@ -62,10 +62,11 @@ class BaseTrainer(object):
       if iter_id >= num_iters:
         break
       data_time.update(time.time() - end)
-
+      # print("3", batch.keys())
       for k in batch:
         if k != 'meta':
           batch[k] = batch[k].to(device=opt.device, non_blocking=True)    
+          # print("4",batch[k].size())
       output, loss, loss_stats = model_with_loss(batch)
       loss = loss.mean()
       if phase == 'train':

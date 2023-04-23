@@ -116,7 +116,9 @@ class CTDetDataset(data.Dataset):
         ct_int = ct.astype(np.int32)
         draw_gaussian(hm[cls_id], ct_int, radius)
         wh[k] = 1. * w, 1. * h
+        
         ind[k] = ct_int[1] * output_w + ct_int[0]
+        
         reg[k] = ct - ct_int
         reg_mask[k] = 1
         cat_spec_wh[k, cls_id * 2: cls_id * 2 + 2] = wh[k]
