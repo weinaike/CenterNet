@@ -35,7 +35,7 @@ class BaseDetector(object):
     self.pause = True
 
   def pre_process(self, image, scale, meta=None):
-    height, width = image.shape[0:2]
+    height, width = image.shape[-2:]
     new_height = int(height * scale)
     new_width  = int(width * scale)
     if self.opt.fix_res:
@@ -48,17 +48,17 @@ class BaseDetector(object):
       c = np.array([new_width // 2, new_height // 2], dtype=np.float32)
       s = np.array([inp_width, inp_height], dtype=np.float32)
 
-    trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
-    resized_image = cv2.resize(image, (new_width, new_height))
-    inp_image = cv2.warpAffine(
-      resized_image, trans_input, (inp_width, inp_height),
-      flags=cv2.INTER_LINEAR)
-    inp_image = ((inp_image / 255. - self.mean) / self.std).astype(np.float32)
+    # trans_input = get_affine_transform(c, s, 0, [inp_width, inp_height])
+    # resized_image = cv2.resize(image, (new_width, new_height))
+    # inp_image = cv2.warpAffine(
+    #   resized_image, trans_input, (inp_width, inp_height),
+    #   flags=cv2.INTER_LINEAR)
+    # # inp_image = ((inp_image / 255. - self.mean) / self.std).astype(np.float32)
 
-    images = inp_image.transpose(2, 0, 1).reshape(1, 3, inp_height, inp_width)
-    if self.opt.flip_test:
-      images = np.concatenate((images, images[:, :, :, ::-1]), axis=0)
-    images = torch.from_numpy(images)
+    # images = inp_image.transpose(2, 0, 1).reshape(1, 3, inp_height, inp_width)
+    # if self.opt.flip_test:
+    #   images = np.concatenate((images, images[:, :, :, ::-1]), axis=0)
+    images = torch.from_numpy(image).float().view(1,1,height,width)
     meta = {'c': c, 's': s, 
             'out_height': inp_height // self.opt.down_ratio, 
             'out_width': inp_width // self.opt.down_ratio}
@@ -91,7 +91,7 @@ class BaseDetector(object):
     elif type(image_or_path_or_tensor) == type (''): 
       image = cv2.imread(image_or_path_or_tensor)
     else:
-      image = image_or_path_or_tensor['image'][0].numpy()
+      image = image_or_path_or_tensor['input'][0].numpy()
       pre_processed_images = image_or_path_or_tensor
       pre_processed = True
     
@@ -101,13 +101,15 @@ class BaseDetector(object):
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
-      if not pre_processed:
-        images, meta = self.pre_process(image, scale, meta)
-      else:
-        # import pdb; pdb.set_trace()
-        images = pre_processed_images['images'][scale][0]
-        meta = pre_processed_images['meta'][scale]
-        meta = {k: v.numpy()[0] for k, v in meta.items()}
+      images, meta = self.pre_process(image, scale, meta)
+      # if not pre_processed:
+      #   images, meta = self.pre_process(image, scale, meta)
+      # else:
+      #   # import pdb; pdb.set_trace()
+      #   images = pre_processed_images['input'][scale][0]
+      #   meta = pre_processed_images['meta'][scale]
+      #   meta = {k: v.numpy()[0] for k, v in meta.items()}
+
       images = images.to(self.opt.device)
       torch.cuda.synchronize()
       pre_process_time = time.time()
@@ -119,8 +121,9 @@ class BaseDetector(object):
       net_time += forward_time - pre_process_time
       decode_time = time.time()
       dec_time += decode_time - forward_time
-      
+
       if self.opt.debug >= 2:
+
         self.debug(debugger, images, dets, output, scale)
       
       dets = self.post_process(dets, meta, scale)

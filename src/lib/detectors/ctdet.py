@@ -29,8 +29,11 @@ class CtdetDetector(BaseDetector):
     with torch.no_grad():
       output = self.model(images)[-1]
       hm = output['hm'].sigmoid_()
+      # hm = output['hm']
       wh = output['wh']
       reg = output['reg'] if self.opt.reg_offset else None
+      # print(wh.size())
+      # print(reg.size())
       if self.opt.flip_test:
         hm = (hm[0:1] + flip_tensor(hm[1:2])) / 2
         wh = (wh[0:1] + flip_tensor(wh[1:2])) / 2
@@ -73,12 +76,14 @@ class CtdetDetector(BaseDetector):
     return results
 
   def debug(self, debugger, images, dets, output, scale=1):
+    # print("debug----------------------------------------")
     detection = dets.detach().cpu().numpy().copy()
     detection[:, :, :4] *= self.opt.down_ratio
     for i in range(1):
       img = images[i].detach().cpu().numpy().transpose(1, 2, 0)
       img = ((img * self.std + self.mean) * 255).astype(np.uint8)
       pred = debugger.gen_colormap(output['hm'][i].detach().cpu().numpy())
+      debugger.add_img(pred, img_id='output_pred_hm_{:.1f}'.format(scale))
       debugger.add_blend_img(img, pred, 'pred_hm_{:.1f}'.format(scale))
       debugger.add_img(img, img_id='out_pred_{:.1f}'.format(scale))
       for k in range(len(dets[i])):
@@ -88,7 +93,8 @@ class CtdetDetector(BaseDetector):
                                  img_id='out_pred_{:.1f}'.format(scale))
 
   def show_results(self, debugger, image, results):
-    debugger.add_img(image, img_id='ctdet')
+    # print(image.shape)
+    debugger.add_img(image.transpose(1,2,0), img_id='ctdet')
     for j in range(1, self.num_classes + 1):
       for bbox in results[j]:
         if bbox[4] > self.opt.vis_thresh:

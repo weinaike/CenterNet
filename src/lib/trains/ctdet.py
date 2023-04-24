@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import torch
 import numpy as np
+import cv2
 
 from models.losses import FocalLoss
 from models.losses import RegL1Loss, RegLoss, NormRegL1Loss, RegWeightedL1Loss
@@ -89,6 +90,7 @@ class CtdetTrainer(BaseTrainer):
       output['hm'], output['wh'], reg=reg,
       cat_spec_wh=opt.cat_spec_wh, K=opt.K)
     dets = dets.detach().cpu().numpy().reshape(1, -1, dets.shape[2])
+    # print(dets.shape)
     dets[:, :, :4] *= opt.down_ratio
     dets_gt = batch['meta']['gt_det'].numpy().reshape(1, -1, dets.shape[2])
     dets_gt[:, :, :4] *= opt.down_ratio
@@ -96,12 +98,16 @@ class CtdetTrainer(BaseTrainer):
       debugger = Debugger(
         dataset=opt.dataset, ipynb=(opt.debug==3), theme=opt.debugger_theme)
       img = batch['input'][i].detach().cpu().numpy().transpose(1, 2, 0)
-      img = np.clip(((
-        img * opt.std + opt.mean) * 255.), 0, 255).astype(np.uint8)
-      pred = debugger.gen_colormap(output['hm'][i].detach().cpu().numpy())
-      gt = debugger.gen_colormap(batch['hm'][i].detach().cpu().numpy())
+      img = np.clip(((img * opt.std + opt.mean) * 255.), 0, 255).astype(np.uint8)
+      gt_hm = batch['hm'][i].detach().cpu().numpy()
+      pred_hm = output['hm'][i].detach().cpu().numpy()
+      pred = debugger.gen_colormap(pred_hm)
+      gt = debugger.gen_colormap(gt_hm)
+      # cv2.imwrite("a.png",pred)
+      # cv2.imwrite("b.png",gt)
       debugger.add_blend_img(img, pred, 'pred_hm')
       debugger.add_blend_img(img, gt, 'gt_hm')
+      
       debugger.add_img(img, img_id='out_pred')
       for k in range(len(dets[i])):
         if dets[i, k, 4] > opt.center_thresh:

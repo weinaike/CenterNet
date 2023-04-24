@@ -16,7 +16,7 @@ from external.nms import soft_nms
 from opts import opts
 from logger import Logger
 from utils.utils import AverageMeter
-from datasets.dataset_factory import dataset_factory
+from datasets.dataset_factory import dataset_factory, get_dataset
 from detectors.detector_factory import detector_factory
 
 class PrefetchDataset(torch.utils.data.Dataset):
@@ -80,9 +80,11 @@ def prefetch_test(opt):
   dataset.run_eval(results, opt.save_dir)
 
 def test(opt):
+  print("----------------test-------------")
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
 
-  Dataset = dataset_factory[opt.dataset]
+  #Dataset = dataset_factory[opt.dataset]
+  Dataset = get_dataset(opt.dataset, opt.task)
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
   Logger(opt)
@@ -91,24 +93,30 @@ def test(opt):
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
   detector = Detector(opt)
-
+  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
   results = {}
   num_iters = len(dataset)
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
   time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
   avg_time_stats = {t: AverageMeter() for t in time_stats}
-  for ind in range(num_iters):
-    img_id = dataset.images[ind]
-    img_info = dataset.coco.loadImgs(ids=[img_id])[0]
-    img_path = os.path.join(dataset.img_dir, img_info['file_name'])
 
-    if opt.task == 'ddd':
-      ret = detector.run(img_path, img_info['calib'])
-    else:
-      ret = detector.run(img_path)
+  ind = 0
+  for sample in data_loader:
+    # img_id = dataset.images[ind]
+    # img_info = dataset.coco.loadImgs(ids=[img_id])[0]
+    # img_path = os.path.join(dataset.img_dir, img_info['file_name'])
+    # print(sample)
+    img_path = sample["input"]
+    img_info = sample["meta"]
+    ret = detector.run(sample)
     
-    results[img_id] = ret['results']
-
+    for k,v in ret['results'].items():
+      print("\n",k,v)
+      print(img_info["ann"])
+    if ind > 2:
+      break
+    results[ind] = ret['results']
+    ind = ind + 1
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
                    ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
     for t in avg_time_stats:
@@ -116,7 +124,7 @@ def test(opt):
       Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
     bar.next()
   bar.finish()
-  dataset.run_eval(results, opt.save_dir)
+  # dataset.run_eval(results, opt.save_dir)
 
 if __name__ == '__main__':
   opt = opts().parse()

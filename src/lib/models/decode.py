@@ -466,9 +466,12 @@ def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):
 
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
-    heat = _nms(heat)
+
+    heat = _nms(heat,3)
+
       
     scores, inds, clses, ys, xs = _topk(heat, K=K)
+    print(scores, inds, clses, ys, xs)
     if reg is not None:
       reg = _transpose_and_gather_feat(reg, inds)
       reg = reg.view(batch, K, 2)

@@ -62,6 +62,11 @@ class Debugger(object):
       self.focal_length = 721.5377
       self.W = 1242
       self.H = 375
+    elif dataset == 'point':
+      self.names = point_class_name
+      self.focal_length = 0
+      self.W = 384
+      self.H = 384
     num_classes = len(self.names)
     self.down_ratio=down_ratio
     # for bird view
@@ -117,6 +122,7 @@ class Debugger(object):
   def gen_colormap(self, img, output_res=None):
     img = img.copy()
     c, h, w = img.shape[0], img.shape[1], img.shape[2]
+
     if output_res is None:
       output_res = (h * self.down_ratio, w * self.down_ratio)
     img = img.transpose(1, 2, 0).reshape(h, w, c, 1).astype(np.float32)
@@ -125,7 +131,9 @@ class Debugger(object):
     if self.theme == 'white':
       colors = 255 - colors
     color_map = (img * colors).max(axis=2).astype(np.uint8)
+    # cv2.imwrite("a.png",color_map)
     color_map = cv2.resize(color_map, (output_res[0], output_res[1]))
+    # cv2.imwrite("b.png",color_map)
     return color_map
     
   '''
@@ -427,6 +435,9 @@ class Debugger(object):
                       lineType=cv2.LINE_AA)
     self.imgs[img_id] = bird_view
 
+point_class_name = [
+  '0', '3', '6','9'
+]
 
 kitti_class_name = [
   'p', 'v', 'b'

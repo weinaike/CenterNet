@@ -48,7 +48,7 @@ def main(opt):
       num_workers=1,
       pin_memory=True
   )
-
+  print("val:",len(val_loader))
   if opt.test:
     _, preds = trainer.val(0, val_loader)
     val_loader.dataset.run_eval(preds, opt.save_dir)
@@ -62,7 +62,7 @@ def main(opt):
       pin_memory=True,
       drop_last=True
   )
-
+  print("train:",len(train_loader))
   print('Starting training...')
   best = 1e10
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):

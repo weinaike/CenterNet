@@ -19,8 +19,6 @@ class CTDetPointDataset(data.Dataset):
   num_classes = 4
   default_resolution = [384, 384]
 
-
-
   def __init__(self):
     otf_file = "/home/wnk/code/PointOTF/PSF0406_02_256by256.npy" 
     labels = [0,3,6,9] 
@@ -28,10 +26,7 @@ class CTDetPointDataset(data.Dataset):
     weight_mode="gauss"
     have_noise = True
 
-    if self.split == "train":
-      self.num_samples = 1024
-    else:
-      self.num_samples = 128
+
 
     self.max_objs = 10
     self.class_name = ['__background__', 0, 3, 6, 9]
@@ -52,8 +47,8 @@ class CTDetPointDataset(data.Dataset):
     self.wave_count = c
     self.have_noise = have_noise
 
-  def __len__(self):
-    return self.num_samples
+  # def __len__(self):
+  #   return self.num_samples
 
 
   def __getitem__(self, index):
@@ -140,7 +135,7 @@ class CTDetPointDataset(data.Dataset):
     gt_det = []
     for k in range(num_objs):
       ann = anns[k]
-      bbox = np.array([(ann[1] - ann[3])/2, (ann[2] - ann[4])/2, (ann[1] + ann[3])/2,(ann[2] + ann[4])/2], dtype=np.float32)/4
+      bbox = np.array([ann[1] - ann[3]//2, ann[2] - ann[4]/2, ann[1] + ann[3]/2,ann[2] + ann[4]/2], dtype=np.float32) / self.opt.down_ratio
       # print("bbox",bbox)
       cls_id = ann[0]
 
@@ -178,6 +173,6 @@ class CTDetPointDataset(data.Dataset):
     if self.opt.debug > 0 or not self.split == 'train':
       gt_det = np.array(gt_det, dtype=np.float32) if len(gt_det) > 0 else \
                np.zeros((1, 6), dtype=np.float32)
-      meta = {'c': c, 's': s, 'gt_det': gt_det, 'img_id': 0}
+      meta = {'c': c, 's': s, 'gt_det': gt_det, 'img_id': 0, 'ann':anns}
       ret['meta'] = meta
     return ret

@@ -165,7 +165,7 @@ def gen_multi_point_sample(otf_list, labels, point_type="ones", weight_mode = "g
                                             point_type=point_type, weight_mode=weight_mode, 
                                             have_noise=have_noise, point_len=point_len) 
         temp, [ch,cw] = gen_point_psf(point_patchs, otf_list) 
-        target.append([label, cw, ch, point_len, point_len])
+        target.append([label, cw, ch, 111, 111])
         if sample is None:
             sample = temp
         else:
