@@ -104,6 +104,7 @@ def _topk(scores, K=40):
     batch, cat, height, width = scores.size()
       
     topk_scores, topk_inds = torch.topk(scores.view(batch, cat, -1), K)
+    # print(topk_scores)
 
     topk_inds = topk_inds % (height * width)
     topk_ys   = (topk_inds / width).int().float()
@@ -466,12 +467,12 @@ def ctdet_decode(heat, wh, reg=None, cat_spec_wh=False, K=100):
 
     # heat = torch.sigmoid(heat)
     # perform nms on heatmaps
-
+    # print(torch.max(heat[0,0,:,:]))
     heat = _nms(heat,3)
 
       
     scores, inds, clses, ys, xs = _topk(heat, K=K)
-    print(scores, inds, clses, ys, xs)
+    # print(scores, inds, clses, ys, xs)
     if reg is not None:
       reg = _transpose_and_gather_feat(reg, inds)
       reg = reg.view(batch, K, 2)

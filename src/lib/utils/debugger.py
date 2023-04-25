@@ -175,16 +175,30 @@ class Debugger(object):
       cv2.circle(self.imgs[img_id], (rect2[0], rect2[1]), int(10 * conf), c, 1)
       cv2.circle(self.imgs[img_id], (rect1[0], rect2[1]), int(10 * conf), c, 1)
       cv2.circle(self.imgs[img_id], (rect2[0], rect1[1]), int(10 * conf), c, 1)
+  
+  
+  def add_circle(self, anns, img_id='default'): 
+    for ann in anns:
+      px = int(ann[1][0].numpy())
+      py = int(ann[2][0].numpy())
+      cls = int(ann[0][0].numpy())
+      # print(px,py)
+      # cv2.circle(self.imgs[img_id],(px,py), 3, (255,0,0), 2)
+      font = cv2.FONT_HERSHEY_SIMPLEX
+      cv2.putText(self.imgs[img_id], self.names[cls], (px, py), font, 0.8 , (0, 0, 255), thickness=2, lineType=cv2.LINE_AA)
+
+
 
   def add_coco_bbox(self, bbox, cat, conf=1, show_txt=True, img_id='default'): 
     bbox = np.array(bbox, dtype=np.int32)
     # cat = (int(cat) + 1) % 80
     cat = int(cat)
     # print('cat', cat, self.names[cat])
+    # print(conf)
     c = self.colors[cat][0][0].tolist()
     if self.theme == 'white':
       c = (255 - np.array(c)).tolist()
-    txt = '{}{:.1f}'.format(self.names[cat], conf)
+    txt = '{}_{:.2f}'.format(self.names[cat], conf)
     font = cv2.FONT_HERSHEY_SIMPLEX
     cat_size = cv2.getTextSize(txt, font, 0.5, 2)[0]
     cv2.rectangle(

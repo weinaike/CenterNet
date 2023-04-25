@@ -99,6 +99,8 @@ class CtdetTrainer(BaseTrainer):
         dataset=opt.dataset, ipynb=(opt.debug==3), theme=opt.debugger_theme)
       img = batch['input'][i].detach().cpu().numpy().transpose(1, 2, 0)
       img = np.clip(((img * opt.std + opt.mean) * 255.), 0, 255).astype(np.uint8)
+      if self.opt.debug > 4:
+        print(torch.max(batch['hm'][i]))
       gt_hm = batch['hm'][i].detach().cpu().numpy()
       pred_hm = output['hm'][i].detach().cpu().numpy()
       pred = debugger.gen_colormap(pred_hm)
@@ -107,6 +109,7 @@ class CtdetTrainer(BaseTrainer):
       # cv2.imwrite("b.png",gt)
       debugger.add_blend_img(img, pred, 'pred_hm')
       debugger.add_blend_img(img, gt, 'gt_hm')
+      debugger.add_img(gt, img_id= 'gt_hm_only')
       
       debugger.add_img(img, img_id='out_pred')
       for k in range(len(dets[i])):

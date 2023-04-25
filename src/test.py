@@ -108,12 +108,13 @@ def test(opt):
     # print(sample)
     img_path = sample["input"]
     img_info = sample["meta"]
-    ret = detector.run(sample)
+    # print(img_info)
+    ret = detector.run(sample, img_info)
     
-    for k,v in ret['results'].items():
-      print("\n",k,v)
-      print(img_info["ann"])
-    if ind > 2:
+    # for k,v in ret['results'].items():
+    #   print("\n",k,v)
+    #   print(img_info["ann"])
+    if ind > 10:
       break
     results[ind] = ret['results']
     ind = ind + 1

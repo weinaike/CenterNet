@@ -76,7 +76,7 @@ class BaseDetector(object):
   def debug(self, debugger, images, dets, output, scale=1):
     raise NotImplementedError
 
-  def show_results(self, debugger, image, results):
+  def show_results(self, debugger, image, results, gt=None):
    raise NotImplementedError
 
   def run(self, image_or_path_or_tensor, meta=None):
@@ -97,7 +97,7 @@ class BaseDetector(object):
     
     loaded_time = time.time()
     load_time += (loaded_time - start_time)
-    
+    gts = meta["ann"].copy()
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
@@ -116,7 +116,8 @@ class BaseDetector(object):
       pre_time += pre_process_time - scale_start_time
       
       output, dets, forward_time = self.process(images, return_time=True)
-
+      if self.opt.debug > 4:
+        print(dets)
       torch.cuda.synchronize()
       net_time += forward_time - pre_process_time
       decode_time = time.time()
@@ -140,7 +141,7 @@ class BaseDetector(object):
     tot_time += end_time - start_time
 
     if self.opt.debug >= 1:
-      self.show_results(debugger, image, results)
+      self.show_results(debugger, image, results,gts)
     
     return {'results': results, 'tot': tot_time, 'load': load_time,
             'pre': pre_time, 'net': net_time, 'dec': dec_time,
