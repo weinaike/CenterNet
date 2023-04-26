@@ -144,27 +144,27 @@ def voc_eval(detpath,
     class_recs[imagename] = {'bbox': bbox,
                              'difficult': difficult,
                              'det': det}
-
+  # 获取这个类别，在这张图片中的所有目标，按图谱名称索引
   # read dets
   detfile = detpath.format(classname)
   with open(detfile, 'r') as f:
     lines = f.readlines()
-
+  # 该类目标的所有检测结果，包括image_ids，confidence， BB
   splitlines = [x.strip().split(' ') for x in lines]
   image_ids = [x[0] for x in splitlines]
   confidence = np.array([float(x[1]) for x in splitlines])
   BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
 
-  nd = len(image_ids)
-  tp = np.zeros(nd)
+  nd = len(image_ids) #图片数量
+  tp = np.zeros(nd) #每个图片的结果
   fp = np.zeros(nd)
 
   if BB.shape[0] > 0:
     # sort by confidence
-    sorted_ind = np.argsort(-confidence)
+    sorted_ind = np.argsort(-confidence) #排序
     sorted_scores = np.sort(-confidence)
     BB = BB[sorted_ind, :]
-    image_ids = [image_ids[x] for x in sorted_ind]
+    image_ids = [image_ids[x] for x in sorted_ind] #排序， 
 
     # go down dets and mark TPs and FPs
     for d in range(nd):
@@ -207,9 +207,18 @@ def voc_eval(detpath,
   fp = np.cumsum(fp)
   tp = np.cumsum(tp)
   rec = tp / float(npos)
+
   # avoid divide by zero in case the first detection matches a difficult
   # ground truth
   prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
   ap = voc_ap(rec, prec, use_07_metric)
 
   return rec, prec, ap
+
+
+
+
+
+
+
+

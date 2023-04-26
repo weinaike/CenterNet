@@ -12,6 +12,10 @@ import time
 from progress.bar import Bar
 import torch
 
+import pickle as cPickle
+
+import matplotlib.pyplot as plt
+
 from external.nms import soft_nms
 from opts import opts
 from logger import Logger
@@ -19,65 +23,117 @@ from utils.utils import AverageMeter
 from datasets.dataset_factory import dataset_factory, get_dataset
 from detectors.detector_factory import detector_factory
 
-class PrefetchDataset(torch.utils.data.Dataset):
-  def __init__(self, opt, dataset, pre_process_func):
-    self.images = dataset.images
-    self.load_image_func = dataset.coco.loadImgs
-    self.img_dir = dataset.img_dir
-    self.pre_process_func = pre_process_func
-    self.opt = opt
-  
-  def __getitem__(self, index):
-    img_id = self.images[index]
-    img_info = self.load_image_func(ids=[img_id])[0]
-    img_path = os.path.join(self.img_dir, img_info['file_name'])
-    image = cv2.imread(img_path)
-    images, meta = {}, {}
-    for scale in opt.test_scales:
-      if opt.task == 'ddd':
-        images[scale], meta[scale] = self.pre_process_func(
-          image, scale, img_info['calib'])
+
+def voc_ap(rec, prec, use_07_metric=False):
+  """ ap = voc_ap(rec, prec, [use_07_metric])
+  Compute VOC AP given precision and recall.
+  If use_07_metric is true, uses the
+  VOC 07 11 point method (default:False).
+  """
+  if use_07_metric:
+    # 11 point metric
+    ap = 0.
+    for t in np.arange(0., 1.1, 0.1):
+      if np.sum(rec >= t) == 0:
+        p = 0
       else:
-        images[scale], meta[scale] = self.pre_process_func(image, scale)
-    return img_id, {'images': images, 'image': image, 'meta': meta}
+        p = np.max(prec[rec >= t])
+        # print(t, p)
+      ap = ap + p / 11.
+  else:
+    # correct AP calculation
+    # first append sentinel values at the end
+    mrec = np.concatenate(([0.], rec, [1.]))
+    mpre = np.concatenate(([0.], prec, [0.]))
 
-  def __len__(self):
-    return len(self.images)
+    # compute the precision envelope
+    for i in range(mpre.size - 1, 0, -1):
+      mpre[i - 1] = np.maximum(mpre[i - 1], mpre[i])
 
-def prefetch_test(opt):
-  os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
+    # to calculate area under PR curve, look for points
+    # where X axis (recall) changes value
+    i = np.where(mrec[1:] != mrec[:-1])[0]
 
-  Dataset = dataset_factory[opt.dataset]
-  opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
-  print(opt)
-  Logger(opt)
-  Detector = detector_factory[opt.task]
+    # and sum (\Delta recall) * prec
+    ap = np.sum((mrec[i + 1] - mrec[i]) * mpre[i + 1])
+  return ap
+
+def voc_eval_new(dets, annos, images, classname, ovthresh=0.5, use_07_metric=False):
+
+  class_recs = {}
+  npos = 0
+  for image in images:
+    R = [obj for obj in annos[image] if obj['name'] == classname]
+    bbox = np.array([x['bbox'] for x in R])
+    det = [False] * len(R)
+    npos = npos + len(R)
+    class_recs[image] = {'bbox': bbox, 'det': det}
+  # 获取这个类别，在这张图片中的所有目标，按图谱名称索引
+
+  # 该类目标的所有检测结果，包括image_ids，confidence， BB
+  # dets 按类别分
+  image_ids = [x[5] for x in dets]
+  confidence = np.array([float(x[4]) for x in dets])
+  BB = np.array([[float(z) for z in x[:4]] for x in dets])
+
+  nd = len(image_ids) #图片数量
+  tp = np.zeros(nd) #每个图片的结果
+  fp = np.zeros(nd)
+
+  if BB.shape[0] > 0:
+    # sort by confidence
+    sorted_ind = np.argsort(-confidence) #排序
+    sorted_scores = np.sort(-confidence)
+    BB = BB[sorted_ind, :]
+    image_ids = [image_ids[x] for x in sorted_ind] #排序， 
+
+    # go down dets and mark TPs and FPs
+    for d in range(nd):
+      R = class_recs[image_ids[d]]
+      bb = BB[d, :].astype(float)
+      ovmax = -np.inf
+      BBGT = R['bbox'].astype(float)
+
+      if BBGT.size > 0:
+        # compute overlaps
+        # intersection
+        ixmin = np.maximum(BBGT[:, 0], bb[0])
+        iymin = np.maximum(BBGT[:, 1], bb[1])
+        ixmax = np.minimum(BBGT[:, 2], bb[2])
+        iymax = np.minimum(BBGT[:, 3], bb[3])
+        iw = np.maximum(ixmax - ixmin + 1., 0.)
+        ih = np.maximum(iymax - iymin + 1., 0.)
+        inters = iw * ih
+
+        # union
+        uni = ((bb[2] - bb[0] + 1.) * (bb[3] - bb[1] + 1.) +
+               (BBGT[:, 2] - BBGT[:, 0] + 1.) *
+               (BBGT[:, 3] - BBGT[:, 1] + 1.) - inters)
+
+        overlaps = inters / uni
+        ovmax = np.max(overlaps)
+        jmax = np.argmax(overlaps)
+
+      if ovmax > ovthresh:
+        if not R['det'][jmax]:
+          tp[d] = 1.
+          R['det'][jmax] = 1
+        else:
+          fp[d] = 1.
+      else:
+        fp[d] = 1.
+
+  # compute precision recall
+  fp = np.cumsum(fp)
+  tp = np.cumsum(tp)
+  rec = tp / float(npos)
   
-  split = 'val' if not opt.trainval else 'test'
-  dataset = Dataset(opt, split)
-  detector = Detector(opt)
-  
-  data_loader = torch.utils.data.DataLoader(
-    PrefetchDataset(opt, dataset, detector.pre_process), 
-    batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
+  # avoid divide by zero in case the first detection matches a difficult
+  # ground truth
+  prec = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
+  ap = voc_ap(rec, prec, use_07_metric)
 
-  results = {}
-  num_iters = len(dataset)
-  bar = Bar('{}'.format(opt.exp_id), max=num_iters)
-  time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
-  avg_time_stats = {t: AverageMeter() for t in time_stats}
-  for ind, (img_id, pre_processed_images) in enumerate(data_loader):
-    ret = detector.run(pre_processed_images)
-    results[img_id.numpy().astype(np.int32)[0]] = ret['results']
-    Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
-                   ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
-    for t in avg_time_stats:
-      avg_time_stats[t].update(ret[t])
-      Bar.suffix = Bar.suffix + '|{} {tm.val:.3f}s ({tm.avg:.3f}s) '.format(
-        t, tm = avg_time_stats[t])
-    bar.next()
-  bar.finish()
-  dataset.run_eval(results, opt.save_dir)
+  return rec, prec, ap
 
 def test(opt):
   print("----------------test-------------")
@@ -93,7 +149,7 @@ def test(opt):
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
   detector = Detector(opt)
-  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
+  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
   results = {}
   num_iters = len(dataset)
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
@@ -101,7 +157,17 @@ def test(opt):
   avg_time_stats = {t: AverageMeter() for t in time_stats}
 
   ind = 0
+  aps = []
+  cls_names = dataset.labels
+  annos_cls = {}
+  results = {}
+  for cls in cls_names:
+    results.update({cls:list()})
+
+  image_ids = list()
+
   for sample in data_loader:
+    ind = ind + 1
     # img_id = dataset.images[ind]
     # img_info = dataset.coco.loadImgs(ids=[img_id])[0]
     # img_path = os.path.join(dataset.img_dir, img_info['file_name'])
@@ -111,25 +177,70 @@ def test(opt):
     # print(img_info)
     ret = detector.run(sample, img_info)
     
-    # for k,v in ret['results'].items():
-    #   print("\n",k,v)
-    #   print(img_info["ann"])
-    if ind > 10:
+    if opt.debug > 0 and ind > 20:
       break
-    results[ind] = ret['results']
-    ind = ind + 1
+
+
+    anns_gt = img_info["gt_det"]
+    bs, obj_num, obj_ann = anns_gt.size()
+
+    if bs != 1:
+      print("not support batch_size more than 1")
+      assert(0)
+    # load anno
+    gt_objs =  list()
+    
+    for j in range(obj_num):
+      bbox = anns_gt[0][j][0:4].numpy()*opt.down_ratio
+      cls_id =  int(anns_gt[0][j][5])
+      name = cls_names[cls_id]
+      gt_obj = {"bbox": bbox, "name":name}
+      gt_objs.append(gt_obj)
+    if len(gt_objs) > 0:
+      annos_cls.update({ind:gt_objs})
+    image_ids.append(ind)
+
+    # load detection
+
+    for cls_id, dets in ret['results'].items():
+      name = cls_names[cls_id - 1]
+      
+      for det in dets:
+        det_new = list(det)
+        det_new.append(ind)
+        results[name].append(det_new)
+
     Bar.suffix = '[{0}/{1}]|Tot: {total:} |ETA: {eta:} '.format(
                    ind, num_iters, total=bar.elapsed_td, eta=bar.eta_td)
     for t in avg_time_stats:
       avg_time_stats[t].update(ret[t])
       Bar.suffix = Bar.suffix + '|{} {:.3f} '.format(t, avg_time_stats[t].avg)
     bar.next()
+
   bar.finish()
   # dataset.run_eval(results, opt.save_dir)
 
+  for cls in cls_names:
+    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.5)
+    aps += [ap]
+    print(('AP for {} = {:.4f} '.format(cls, ap,)))
+    with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:
+            cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+    
+    plt.figure()
+    plt.xlim([0.0,1.0])
+    plt.ylim([0.0,1.0])
+    plt.xlabel('recall')
+    plt.ylabel('precision')
+    plt.title('PR cruve')
+    plt.plot(rec, prec, '-r')
+    plt.savefig(os.path.join(opt.save_dir, '{}_pr.jpg'.format(cls)))
+
+
+  print(('Mean AP = {:.4f}'.format(np.mean(aps))))
+  print('~~~~~~~~')
+
+
 if __name__ == '__main__':
   opt = opts().parse()
-  if opt.not_prefetch_test:
-    test(opt)
-  else:
-    prefetch_test(opt)
+  test(opt)

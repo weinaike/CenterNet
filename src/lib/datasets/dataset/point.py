@@ -22,7 +22,7 @@ class PointOTF(data.Dataset):
     self.split = split
     self.opt = opt
     if self.split == "train":
-      self.num_samples = 2048
+      self.num_samples = 2048 * 4
     else:
       self.num_samples = 256
   def __len__(self):   

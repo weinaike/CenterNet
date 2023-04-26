@@ -28,8 +28,8 @@ class CtdetDetector(BaseDetector):
   def process(self, images, return_time=False):
     with torch.no_grad():
       output = self.model(images)[-1]
-      hm = output['hm'].sigmoid_()
-      # hm = output['hm']
+      # hm = output['hm'].sigmoid_()
+      hm = output['hm']
       wh = output['wh']
       reg = output['reg'] if self.opt.reg_offset else None
       # print(wh.size())
@@ -83,6 +83,15 @@ class CtdetDetector(BaseDetector):
       img = images[i].detach().cpu().numpy().transpose(1, 2, 0)
       img = img.repeat(3,axis=2)
       img = ((img * self.std + self.mean) * 255).astype(np.uint8)
+
+      # hm = output['hm'].sigmoid_()
+      hm = output['hm']
+      debugger.add_img(hm[i][0].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(0))
+      debugger.add_img(hm[i][1].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(1))
+      debugger.add_img(hm[i][2].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(2))
+      debugger.add_img(hm[i][3].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(3))
+
+
       pred = debugger.gen_colormap(output['hm'][i].detach().cpu().numpy())
       debugger.add_img(pred, img_id='output_pred_hm_{:.1f}'.format(scale))
       debugger.add_blend_img(img, pred, 'pred_hm_{:.1f}'.format(scale))
