@@ -144,7 +144,7 @@ def test(opt):
   Dataset = get_dataset(opt.dataset, opt.task)
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
-  Logger(opt)
+  # Logger(opt)
   Detector = detector_factory[opt.task]
   
   split = 'val' if not opt.trainval else 'test'

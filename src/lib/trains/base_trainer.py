@@ -97,6 +97,7 @@ class BaseTrainer(object):
       
       if opt.test:
         self.save_result(output, batch, results)
+        ########### 该处可进行指标分析 #################
       del output, loss, loss_stats
     
     bar.finish()
