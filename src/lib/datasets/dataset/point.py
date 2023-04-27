@@ -14,7 +14,7 @@ from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
 from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
 from utils.image import draw_dense_reg
-from utils.PointSample import gen_multi_point_sample
+from utils.PointSample import gen_multi_point_sample, gen_merge_sample
 import math
 class PointOTF(data.Dataset):
   mean = np.array([0., 0., 0.],
@@ -56,6 +56,7 @@ class PointOTF(data.Dataset):
     self.w = w
     self.wave_count = c
 
+    self.point_len = self.opt.point_len
 
   def __len__(self):   
     return self.num_samples
@@ -63,7 +64,12 @@ class PointOTF(data.Dataset):
   def __getitem__(self, index):
     otf_noise = np.random.rand(self.wave_count, self.h, self.w) * 0.1 + 0.9
     otf_list = np.multiply(self.otf_list, otf_noise)
-    img, target = gen_multi_point_sample(otf_list, self.labels, self.point_type, self.weight_mode, self.have_noise)
+    img = None
+    target = None
+    if self.opt.merge_bg:
+      img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
+    else:
+      img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
     
     obj_num = len(target)
     

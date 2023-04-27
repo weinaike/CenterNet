@@ -137,6 +137,10 @@ class opts(object):
 
     self.parser.add_argument('--otf_file', default='../data/PSF0406_02_256by256.npy',type= str,
                              help='path to otf_file')
+    self.parser.add_argument('--point_len', default=111,type= int,
+                             help='path to otf_file')
+    self.parser.add_argument('--merge_bg', action='store_true',
+                             help='point object merge with backgroud')
     
     ############### gen point OTF sample 
     self.parser.add_argument('--point_type', default='rand', type= str,

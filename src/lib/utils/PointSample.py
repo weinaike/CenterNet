@@ -152,7 +152,7 @@ def gen_sample(otf_list, labels, point_type="ones", weight_mode = "gauss", have_
     return sample, [label, cw, ch, point_len, point_len]
 
 
-def gen_multi_point_sample(otf_list, labels, point_type="ones", weight_mode = "gauss", have_noise = True ):
+def gen_multi_point_sample(otf_list, labels, obj_width, point_type="ones", weight_mode = "gauss", have_noise = True ):
 
     point_len = 3
     [wave_count,h,w ] = otf_list.shape
@@ -165,7 +165,7 @@ def gen_multi_point_sample(otf_list, labels, point_type="ones", weight_mode = "g
                                             point_type=point_type, weight_mode=weight_mode, 
                                             have_noise=have_noise, point_len=point_len) 
         temp, [ch,cw] = gen_point_psf(point_patchs, otf_list) 
-        target.append([label, cw, ch, 111, 111])
+        target.append([label, cw, ch, obj_width, obj_width])
         if sample is None:
             sample = temp
         else:
@@ -184,18 +184,18 @@ def gen_multi_point_sample(otf_list, labels, point_type="ones", weight_mode = "g
 
 
 
-def gen_merge_sample(otf_list, labels, point_type="ones", weight_mode = "gauss", have_noise = True ):
+def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode = "gauss", have_noise = True ):
     [wave_count,h,w ] = otf_list.shape
     #点目标， 其宽度obj_len, 要求奇数
-    obj_len = 3
-    point_patchs, label = gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise,point_len=obj_len) 
+    obj_len = 5
+    point_patchs, label = gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise, point_len=obj_len) 
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 99
     rect_patchs, _ = gen_point_patchs(wave_count,[9],point_type="ones_rand", weight_mode="gauss", have_noise=False, point_len=rect_len)
     
     # 点目标和方块目标融合
-    startx = random.randint(rect_len//4,(rect_len - obj_len) )
-    starty = random.randint(rect_len//4,(rect_len - obj_len) )
+    startx = random.randint(obj_len, rect_len - obj_len * 2) 
+    starty = random.randint(obj_len, rect_len - obj_len * 2) 
     endx = startx + obj_len
     endy = starty + obj_len
     rect_patchs[:,starty:endy, startx:endx] = point_patchs
@@ -206,8 +206,8 @@ def gen_merge_sample(otf_list, labels, point_type="ones", weight_mode = "gauss",
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
     sample, rect_center = gen_point_psf(rect_patchs, otf_list) 
 
-    last_h = rect_center[0] + point_cy
-    last_w = rect_center[1] + point_cx
+    last_h = rect_center[0] + point_cy - rect_len//2
+    last_w = rect_center[1] + point_cx - rect_len//2
      
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
@@ -219,7 +219,7 @@ def gen_merge_sample(otf_list, labels, point_type="ones", weight_mode = "gauss",
     sample = sample.reshape(1,h,w) 
 
     target = list()
-    target.append([label, last_w, last_h, obj_len, obj_len ])
+    target.append([label, last_w, last_h, obj_width, obj_width ])
 
     # print(sample)
     return sample, target
@@ -238,8 +238,8 @@ def gen_merge_cls_sample(otf_list, labels, point_type="ones", weight_mode = "gau
     # 点目标和方块目标融合
     x = random.random()
     if x > 0.5:
-        startx = random.randint(0,(rect_len - obj_len)//2) # (rect_len - obj_len)//4 #
-        starty = random.randint(0,(rect_len - obj_len)//2) # (rect_len - obj_len)//4
+        startx = random.randint(obj_len, rect_len - obj_len * 2) # (rect_len - obj_len)//4 #
+        starty = random.randint(obj_len, rect_len - obj_len * 2) # (rect_len - obj_len)//4
         endx = startx + obj_len
         endy = starty + obj_len
         rect_patchs[:,starty:endy, startx:endx] = point_patchs
