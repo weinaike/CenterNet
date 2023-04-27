@@ -21,6 +21,7 @@ from opts import opts
 from logger import Logger
 from utils.utils import AverageMeter
 from datasets.dataset_factory import dataset_factory, get_dataset
+# from datasets.dataset.point import PointOTF, get_dataset
 from detectors.detector_factory import detector_factory
 
 

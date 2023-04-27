@@ -177,16 +177,26 @@ class Debugger(object):
       cv2.circle(self.imgs[img_id], (rect2[0], rect1[1]), int(10 * conf), c, 1)
   
   
-  def add_circle(self, anns, img_id='default'): 
+  def add_circle(self, anns, img_id='default', radius = 5 , c = (255,0,0)): 
     for ann in anns:
       px = int(ann[1][0].numpy())
       py = int(ann[2][0].numpy())
       cls = int(ann[0][0].numpy())
       # print(px,py)
-      # cv2.circle(self.imgs[img_id],(px,py), 3, (255,0,0), 2)
+      cv2.circle(self.imgs[img_id],(px,py), radius, c, -1)
       font = cv2.FONT_HERSHEY_SIMPLEX
-      cv2.putText(self.imgs[img_id], self.names[cls], (px, py), font, 0.8 , (0, 0, 255), thickness=2, lineType=cv2.LINE_AA)
+      cv2.putText(self.imgs[img_id], self.names[cls], (px + 5 , py - 5), font, 0.7 , c,  thickness=2, lineType=cv2.LINE_AA)
 
+
+  def add_circle_bbox(self, bbox, img_id='default', radius = 3 , c = (0,0,255)): 
+    print(bbox)
+    px = int((bbox[0] + bbox[2])/2)
+    py = int((bbox[1] + bbox[3])/2)
+    cls = int(bbox[5])
+    # print(px,py)
+    cv2.circle(self.imgs[img_id],(px,py), radius, c, -1)
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(self.imgs[img_id], self.names[cls], (px + 5 , py + 20), font, 0.7 , c,  thickness=2, lineType=cv2.LINE_AA)
 
 
   def add_coco_bbox(self, bbox, cat, conf=1, show_txt=True, img_id='default'): 
@@ -450,7 +460,7 @@ class Debugger(object):
     self.imgs[img_id] = bird_view
 
 point_class_name = [
-  '0', '3', '6','9'
+  '0', '2', '4','6','8'
 ]
 
 kitti_class_name = [
