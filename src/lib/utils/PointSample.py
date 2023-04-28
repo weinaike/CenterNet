@@ -184,81 +184,48 @@ def gen_multi_point_sample(otf_list, labels, obj_width, point_type="ones", weigh
 
 
 
-def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode = "gauss", have_noise = True ):
+def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode = "gauss", have_noise = True , noise_sig = 0.1):
     [wave_count,h,w ] = otf_list.shape
     #点目标， 其宽度obj_len, 要求奇数
-    obj_len = 5
-    point_patchs, label = gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise, point_len=obj_len) 
+    obj_num = random.randint(1,3)
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 99
-    rect_patchs, _ = gen_point_patchs(wave_count,[9],point_type="ones_rand", weight_mode="gauss", have_noise=False, point_len=rect_len)
-    
-    # 点目标和方块目标融合
-    startx = random.randint(obj_len, rect_len - obj_len * 2) 
-    starty = random.randint(obj_len, rect_len - obj_len * 2) 
-    endx = startx + obj_len
-    endy = starty + obj_len
-    rect_patchs[:,starty:endy, startx:endx] = point_patchs
-    
-    point_cx = (startx + endx) // 2
-    point_cy = (starty + endy) // 2
-
-    #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
-    sample, rect_center = gen_point_psf(rect_patchs, otf_list) 
-
-    last_h = rect_center[0] + point_cy - rect_len//2
-    last_w = rect_center[1] + point_cx - rect_len//2
-     
-    sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-    [h,w] = sample.shape
-    if have_noise:
-        sigm = 0.4
-        sample = sample + sigm * np.random.rand(h,w)
-        sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-
-    sample = sample.reshape(1,h,w) 
-
+    rect_patchs, _ = gen_point_patchs(wave_count,[9],point_type=point_type, weight_mode="gauss", have_noise=have_noise, point_len=rect_len)
     target = list()
-    target.append([label, last_w, last_h, obj_width, obj_width ])
-
-    # print(sample)
-    return sample, target
-
-
-def gen_merge_cls_sample(otf_list, labels, point_type="ones", weight_mode = "gauss", have_noise = True ):
-    [wave_count,h,w ] = otf_list.shape
-    #点目标， 其宽度obj_len, 要求奇数
-    obj_len = 5
-    point_patchs, label0 = gen_point_patchs(wave_count, [labels[0]], point_type, weight_mode, have_noise, point_len=obj_len) 
-    #方块目标， 其宽度rect_len, 要求奇数
-    rect_len = 99
-    rect_patchs, label1 = gen_point_patchs(wave_count,[labels[1]],point_type=point_type, 
-                                           weight_mode=weight_mode, have_noise=False, point_len=rect_len)
-    
-    # 点目标和方块目标融合
-    x = random.random()
-    if x > 0.5:
-        startx = random.randint(obj_len, rect_len - obj_len * 2) # (rect_len - obj_len)//4 #
-        starty = random.randint(obj_len, rect_len - obj_len * 2) # (rect_len - obj_len)//4
+    for i in range(obj_num):
+        obj_len = 5
+        point_patchs, label = gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise, point_len=obj_len) 
+        
+        # 点目标和方块目标融合
+        startx = random.randint(obj_len, rect_len - obj_len * 2) 
+        starty = random.randint(obj_len, rect_len - obj_len * 2) 
         endx = startx + obj_len
         endy = starty + obj_len
         rect_patchs[:,starty:endy, startx:endx] = point_patchs
-        label = label0
-    else:
-        label = label1
+        
+        point_cx = (startx + endx) // 2
+        point_cy = (starty + endy) // 2
 
+        last_h = point_cy - rect_len//2
+        last_w = point_cx - rect_len//2
+        # last_h = rect_center[0] + point_cy - rect_len//2
+        # last_w = rect_center[1] + point_cx - rect_len//2
+
+        target.append([label, last_w, last_h, obj_width, obj_width ])
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
-    sample, _ = gen_point_psf(rect_patchs, otf_list) 
+    sample, rect_center = gen_point_psf(rect_patchs, otf_list)
+    for i in range(len(target)):
+        target[i][1] += rect_center[1] 
+        target[i][2] += rect_center[0] 
 
-     
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
     if have_noise:
-        sigm = 0.4
-        sample = sample + sigm * np.random.rand(h,w)
-        sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
+        sigm = noise_sig
+        sample = np.multiply(sample, 1 + sigm * (np.random.rand(h,w) - 0.5)) 
+        # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
 
     sample = sample.reshape(1,h,w) 
 
     # print(sample)
-    return sample, [label, 0, 0, 0, 0]
+    return sample, target

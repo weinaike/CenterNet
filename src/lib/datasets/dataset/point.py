@@ -67,7 +67,7 @@ class PointOTF(data.Dataset):
     img = None
     target = None
     if self.opt.merge_bg:
-      img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
+      img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.sigma)
     else:
       img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
     

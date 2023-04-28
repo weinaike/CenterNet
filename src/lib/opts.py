@@ -137,27 +137,19 @@ class opts(object):
 
     self.parser.add_argument('--otf_file', default='../data/PSF0406_02_256by256.npy',type= str,
                              help='path to otf_file')
-    self.parser.add_argument('--point_len', default=111,type= int,
-                             help='path to otf_file')
-    self.parser.add_argument('--merge_bg', action='store_true',
-                             help='point object merge with backgroud')
+    self.parser.add_argument('--point_len', default=111,type= int, help='path to otf_file')
+    self.parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     
     ############### gen point OTF sample 
-    self.parser.add_argument('--point_type', default='rand', type= str,
-                             help='mode of point type')
-    self.parser.add_argument('--weight_mode', default='gauss', type= str,
-                             help='mode of wavelength weight ')
-    self.parser.add_argument('--have_noise', default=True, type=lambda x: (str(x).lower() == 'True'),
-                        help='have_noise') 
-    self.parser.add_argument('--labels', nargs='+',default=[0,3,6,9], type=int,
-                        help='a list of integers')
-    self.parser.add_argument('--sample_num', default=2048, type=int,
-                        help='num of sample in one train epoch')
+    self.parser.add_argument('--point_type', default='rand', type= str, help='mode of point type')
+    self.parser.add_argument('--weight_mode', default='gauss', type= str, help='mode of wavelength weight ')
+    self.parser.add_argument('--have_noise', default=True, type=lambda x: (str(x).lower() == 'true'), help='have_noise') 
+    self.parser.add_argument('--noise_sigma', default=0, type=float, help='noise sigma') 
+    self.parser.add_argument('--labels', nargs='+',default=[0,3,6,9], type=int, help='a list of integers')
+    self.parser.add_argument('--sample_num', default=2048, type=int, help='num of sample in one train epoch')
  
     # multi_pose
-    self.parser.add_argument('--aug_rot', type=float, default=0, 
-                             help='probability of applying '
-                                  'rotation augmentation.')
+    self.parser.add_argument('--aug_rot', type=float, default=0, help='probability of applying rotation augmentation.')
     # ddd
     self.parser.add_argument('--aug_ddd', type=float, default=0.5,
                              help='probability of applying crop augmentation.')
