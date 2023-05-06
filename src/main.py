@@ -59,6 +59,7 @@ def main(opt):
       batch_size=opt.batch_size, 
       shuffle=True,
       num_workers=opt.num_workers,
+      # prefetch_factor = 4, 
       pin_memory=True,
       drop_last=True
   )

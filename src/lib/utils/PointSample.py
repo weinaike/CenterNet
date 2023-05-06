@@ -212,6 +212,7 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
         # last_w = rect_center[1] + point_cx - rect_len//2
 
         target.append([label, last_w, last_h, obj_width, obj_width ])
+    # np.save("rect_patchs.npy",rect_patchs)
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
     sample, rect_center = gen_point_psf(rect_patchs, otf_list)
     for i in range(len(target)):
@@ -221,7 +222,7 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
     if have_noise:
-        sigm = noise_sig
+        sigm = noise_sig * random.uniform(0,1)
         sample = np.multiply(sample, 1 + sigm * (np.random.rand(h,w) - 0.5)) 
         # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
 
