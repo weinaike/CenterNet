@@ -223,7 +223,8 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
     [h,w] = sample.shape
     if have_noise:
         sigm = noise_sig * random.uniform(0,1)
-        sample = np.multiply(sample, 1 + sigm * (np.random.rand(h,w) - 0.5)) 
+        # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
+        sample = sample + sigm * np.random.rand(h,w)
         # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
 
     sample = sample.reshape(1,h,w) 

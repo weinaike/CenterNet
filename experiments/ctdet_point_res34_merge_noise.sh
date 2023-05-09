@@ -1,18 +1,22 @@
 cd src
 # train
-# python main.py ctdet --exp_id point_res34_384_merge_noise --arch res_34 --dataset point --mse_loss \
-#                      --batch_size 64 --num_epochs 100 --lr_step 80 --gpus 0  --debug 0 \
-#                      --hm_weight 1e5 --labels 0 2 4 6 8 --have_noise True --noise_sigma 0.1 \
-#                      --sample_num 8192 --point_type ones_rand --point_len 111 --merge_bg --hm_gauss 3 \
-#                      --load_model ../exp/ctdet/point_res34_384_merge_noise/model_last.pth
+python main.py ctdet --exp_id point_res34_384_add_noise --arch res_34 --dataset point --mse_loss \
+                     --batch_size 64 --num_epochs 100 --lr_step 80 --gpus 0  --debug 0 \
+                     --hm_weight 1e5 --labels 0 2 4 6 8 --have_noise True --noise_sigma 0.05 \
+                     --sample_num 8192 --point_type ones_rand --point_len 111 --merge_bg --hm_gauss 3 \
+                    #  --load_model ../exp/ctdet/point_res34_384_merge_noise/model_last.pth
 # test
-python test.py ctdet --exp_id point_res34_384_merge_noise --arch res_34 --dataset point --mse_loss --resume --not_prefetch_test \
-                    --debug 1  --vis_thresh 0.5  --labels 0 2 4 6 8 --have_noise True --noise_sigma 0.1 \
-                    --point_type ones_rand --point_len 111 --merge_bg --hm_gauss 3
+python test.py ctdet --exp_id point_res34_384_add_noise --arch res_34 --dataset point --mse_loss --not_prefetch_test \
+                    --debug 0  --vis_thresh 0.5  --labels 0 2 4 6 8   --have_noise True --noise_sigma 0.05 \
+                    --point_type ones_rand --point_len 111 --merge_bg --hm_gauss 3 --resume
+
 
 cd ..
 
 
+
+
+# multiply noise  -------------------
 
 #noise_simga = 0-0.2, random,  0.1 map >0.4   0.2 map > 0.25
 
