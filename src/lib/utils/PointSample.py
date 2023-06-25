@@ -1,19 +1,11 @@
 #coding=utf-8
 
 import os
-from PIL import Image
 import torch
 import torch.utils.data
-import torchvision
-from skimage import io
-from torch.utils.data import Dataset
 import random
 import numpy as np
-import matplotlib.pyplot as plt
-import torch.nn.functional as F
-import logging
-import time
-
+import json
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
@@ -91,8 +83,8 @@ def gen_point_psf(point_patch, otf_list):
     
     # centerx = w//4 + w//2#int(w*random.uniform(0,1))
     # centery = h//4 + h//2#int(h*random.uniform(0,1))
-    centerx = w//4 + int(w*random.uniform(0,1))
-    centery = h//4 + int(h*random.uniform(0,1))
+    centerx = w//2 + int(w*random.uniform(0,0.5))
+    centery = h//2 + int(h*random.uniform(0,0.5))
 
     point_source_plan = np.zeros((pc,h+h//2, w+w//2))
     point_source_plan[:,(centery-ph//2-1):(centery+ph//2), (centerx-pw//2-1):(centerx+pw//2)] = point_patch
@@ -190,7 +182,7 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
     obj_num = random.randint(1,3)
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 99
-    rect_patchs, _ = gen_point_patchs(wave_count,[9],point_type=point_type, weight_mode="gauss", have_noise=have_noise, point_len=rect_len)
+    rect_patchs, _ = gen_point_patchs(wave_count,[0],point_type=point_type, weight_mode="gauss", have_noise=have_noise, point_len=rect_len)
     target = list()
     for i in range(obj_num):
         obj_len = 5
@@ -221,7 +213,7 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
 
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
-    if have_noise:
+    if False:#have_noise:
         sigm = noise_sig * random.uniform(0,1)
         # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
         sample = sample + sigm * np.random.rand(h,w)
@@ -229,5 +221,67 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
 
     sample = sample.reshape(1,h,w) 
 
-    # print(sample)
+    # print("test")
     return sample, target
+
+def save_merge_point(id, otf_file):
+    
+    path = otf_file[:-4]
+    labels = [1,3,5]
+
+    otf_list = np.load(otf_file)
+    
+    point_len = 111 
+    point_type = "ones"
+    noise_sigma = 0.01
+
+    sample, target = gen_merge_sample(otf_list,labels,point_len,point_type,"gauss",False,noise_sigma)
+    # sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, "gauss", False)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    # print(path)
+    np.save(os.path.join(path,"sample_{:05d}.npy".format(id)),sample)
+    with open(os.path.join(path,"sample_{:05d}.json".format(id)), "w") as fp:
+        json.dump(target, fp)
+
+
+if __name__ == "__main__":
+    import multiprocessing as mp
+
+
+    pool = mp.Pool(processes=20)
+    otf_file = "../../../data/PSF0620_04_4_40.npy"
+    num  = 10000
+    for i in range(num):
+        pool.apply_async(save_merge_point, (i,otf_file,))
+        # gen_merge_sample(otf_list, labels, point_len, point_type, weight_mode = "gauss", have_noise = True , noise_sig = noise_sigma)
+    print("----start----")
+    pool.close()
+    pool.join()
+    print("----over----")
+    # path = otf_file[:-4]
+    # samples = list()
+    # targets = list()    
+    # for i in range(int(num * 0.9)):
+    #     sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
+    #     with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
+    #         target = json.load(fp)
+    #     samples.append(sample)
+    #     targets.append(target)
+
+    # np.save("{}_{}_train.npy".format(otf_file,"sample"),np.array(samples))
+    # with open("{}_{}_train.json".format(otf_file,"sample"), "w") as fp:
+    #     json.dump(targets, fp)
+
+    # samples = list()
+    # targets = list()    
+    # for i in range(int(num * 0.9)+1,num):
+    #     sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
+    #     with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
+    #         target = json.load(fp)
+    #     samples.append(sample)
+    #     targets.append(target)
+
+    # np.save("{}_{}_val.npy".format(otf_file,"sample"),np.array(samples))
+    # with open("{}_{}_val.json".format(otf_file,"sample"), "w") as fp:
+    #     json.dump(targets, fp)

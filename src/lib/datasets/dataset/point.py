@@ -22,10 +22,6 @@ class PointOTF(data.Dataset):
   std  = np.array([1.0, 1.0, 1.0],
                    dtype=np.float32).reshape(1, 1, 3)
   default_resolution = [384, 384]
-  
-
-
-
 
   def __init__(self, opt, split):
     super(PointOTF, self).__init__()
@@ -58,19 +54,63 @@ class PointOTF(data.Dataset):
 
     self.point_len = self.opt.point_len
 
+    self.imgs = list()
+    self.targets = list()
+
+    if False:
+      for i in range(self.num_samples):
+        otf_noise = np.random.rand(self.wave_count, self.h, self.w) * 0.1 + 0.9
+        otf_list = np.multiply(self.otf_list, otf_noise)
+        if self.opt.merge_bg:
+          img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
+        else:
+          img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
+        self.imgs.append(img)
+        self.targets.append(target)
+    else:
+      path = self.otf_file[:-4]
+      all_sample = len(os.listdir(path)) // 2
+
+      start = 0
+      end = all_sample
+      if self.split == "train":
+        if (all_sample - 256) < self.num_samples:
+          print("num of sample is not enough")
+          assert(0)
+        end = self.num_samples
+      else:
+        start = all_sample - 256
+      print("file index of sample ", start, end)
+      for i in range(start, end):  
+        sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
+        with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
+            target = json.load(fp)
+        self.imgs.append(sample)
+        self.targets.append(target)
+
   def __len__(self):   
     return self.num_samples
 
   def __getitem__(self, index):
-    otf_noise = np.random.rand(self.wave_count, self.h, self.w) * 0.1 + 0.9
-    otf_list = np.multiply(self.otf_list, otf_noise)
     img = None
     target = None
-    if self.opt.merge_bg:
-      img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
+    if False:
+      otf_noise = np.random.rand(self.wave_count, self.h, self.w) * 0.1 + 0.9
+      otf_list = np.multiply(self.otf_list, otf_noise)
+
+      if self.opt.merge_bg:
+        img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
+      else:
+        img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
     else:
-      img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
-    
+      img = self.imgs[index]
+      if self.have_noise:
+          [c, h,w] = img.shape
+          sigm = self.opt.noise_sigma * np.random.uniform(0,1)
+          # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
+          img = img + sigm * np.random.rand(c, h, w)
+          # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
+      target = self.targets[index]   
     obj_num = len(target)
     
     anns = target
@@ -150,3 +190,7 @@ class PointOTF(data.Dataset):
       meta = {'c': c, 's': s, 'gt_det': gt_det, 'img_id': 0, 'ann':anns}
       ret['meta'] = meta
     return ret
+  
+
+
+  

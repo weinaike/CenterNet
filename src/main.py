@@ -41,6 +41,17 @@ def main(opt):
   trainer.set_device(opt.gpus, opt.chunk_sizes, opt.device)
 
   print('Setting up data...')
+  train_loader = torch.utils.data.DataLoader(
+      Dataset(opt, 'train'), 
+      batch_size=opt.batch_size, 
+      shuffle=True,
+      num_workers=opt.num_workers,
+      prefetch_factor = 4, 
+      pin_memory=True,
+      drop_last=True
+  )
+  print("train:",len(train_loader))
+
   val_loader = torch.utils.data.DataLoader(
       Dataset(opt, 'val'), 
       batch_size=1, 
@@ -54,16 +65,7 @@ def main(opt):
     val_loader.dataset.run_eval(preds, opt.save_dir)
     return
 
-  train_loader = torch.utils.data.DataLoader(
-      Dataset(opt, 'train'), 
-      batch_size=opt.batch_size, 
-      shuffle=True,
-      num_workers=opt.num_workers,
-      # prefetch_factor = 4, 
-      pin_memory=True,
-      drop_last=True
-  )
-  print("train:",len(train_loader))
+
   print('Starting training...')
   best = 1e10
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
