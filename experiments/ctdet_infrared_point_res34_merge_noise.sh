@@ -1,3 +1,9 @@
+# cd src/lib/utils/
+# python PointSample.py
+# cd ../../../
+
+
+
 cd src
 # train
 python main.py ctdet --exp_id infrared_point_res34_384 --arch res_34 --dataset point --mse_loss \

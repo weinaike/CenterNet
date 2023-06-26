@@ -235,8 +235,8 @@ def save_merge_point(id, otf_file):
     point_type = "ones"
     noise_sigma = 0.01
 
-    sample, target = gen_merge_sample(otf_list,labels,point_len,point_type,"gauss",False,noise_sigma)
-    # sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, "gauss", False)
+    # sample, target = gen_merge_sample(otf_list,labels,point_len,point_type,"gauss",False,noise_sigma)
+    sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, "gauss", True)
     if not os.path.exists(path):
         os.mkdir(path)
     # print(path)
@@ -247,10 +247,14 @@ def save_merge_point(id, otf_file):
 
 if __name__ == "__main__":
     import multiprocessing as mp
-
+    import argparse 
+    parser = argparse.ArgumentParser()
+    # basic experiment setting
+    parser.add_argument('--otf_file', default="../../../data/PSF0620_04_4_40.npy", help='')
+    args = parser.parse_args()
 
     pool = mp.Pool(processes=20)
-    otf_file = "../../../data/PSF0620_04_4_40.npy"
+    otf_file = args.otf_file
     num  = 10000
     for i in range(num):
         pool.apply_async(save_merge_point, (i,otf_file,))
@@ -259,29 +263,30 @@ if __name__ == "__main__":
     pool.close()
     pool.join()
     print("----over----")
-    # path = otf_file[:-4]
-    # samples = list()
-    # targets = list()    
-    # for i in range(int(num * 0.9)):
-    #     sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
-    #     with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
-    #         target = json.load(fp)
-    #     samples.append(sample)
-    #     targets.append(target)
+    if False:
+        path = otf_file[:-4]
+        samples = list()
+        targets = list()    
+        for i in range(int(num * 0.9)):
+            sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
+            with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
+                target = json.load(fp)
+            samples.append(sample)
+            targets.append(target)
 
-    # np.save("{}_{}_train.npy".format(otf_file,"sample"),np.array(samples))
-    # with open("{}_{}_train.json".format(otf_file,"sample"), "w") as fp:
-    #     json.dump(targets, fp)
+        np.save("{}_{}_train.npy".format(otf_file,"sample"),np.array(samples))
+        with open("{}_{}_train.json".format(otf_file,"sample"), "w") as fp:
+            json.dump(targets, fp)
 
-    # samples = list()
-    # targets = list()    
-    # for i in range(int(num * 0.9)+1,num):
-    #     sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
-    #     with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
-    #         target = json.load(fp)
-    #     samples.append(sample)
-    #     targets.append(target)
+        samples = list()
+        targets = list()    
+        for i in range(int(num * 0.9)+1,num):
+            sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))
+            with open(os.path.join(path,"sample_{:05d}.json".format(i)), "r") as fp:
+                target = json.load(fp)
+            samples.append(sample)
+            targets.append(target)
 
-    # np.save("{}_{}_val.npy".format(otf_file,"sample"),np.array(samples))
-    # with open("{}_{}_val.json".format(otf_file,"sample"), "w") as fp:
-    #     json.dump(targets, fp)
+        np.save("{}_{}_val.npy".format(otf_file,"sample"),np.array(samples))
+        with open("{}_{}_val.json".format(otf_file,"sample"), "w") as fp:
+            json.dump(targets, fp)

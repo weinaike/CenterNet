@@ -22,7 +22,8 @@ class Logger(object):
     if not os.path.exists(opt.debug_dir):
       os.makedirs(opt.debug_dir)
    
-    time_str = time.strftime('%Y-%m-%d-%H-%M')
+    # time_str = time.strftime('%Y-%m-%d-%H-%M')
+    time_str = opt.time_str
 
     args = dict((name, getattr(opt, name)) for name in dir(opt)
                 if not name.startswith('_'))
@@ -37,7 +38,8 @@ class Logger(object):
       for k, v in sorted(args.items()):
         opt_file.write('  %s: %s\n' % (str(k), str(v)))
           
-    log_dir = opt.save_dir + '/logs_{}'.format(time_str)
+    # log_dir = opt.save_dir + '/logs_{}'.format(time_str)
+    log_dir = opt.log_dir
     if USE_TENSORBOARD:
       self.writer = tensorboardX.SummaryWriter(log_dir=log_dir)
     else:
@@ -46,10 +48,10 @@ class Logger(object):
       if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     self.log = open(log_dir + '/log.txt', 'w')
-    try:
-      os.system('cp {}/opt.txt {}/'.format(opt.save_dir, log_dir))
-    except:
-      pass
+    # try:
+    #   os.system('cp {}/opt.txt {}/'.format(opt.save_dir, log_dir))
+    # except:
+    #   pass
     self.start_line = True
 
   def write(self, txt):

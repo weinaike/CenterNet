@@ -5,6 +5,7 @@ from __future__ import print_function
 import argparse
 import os
 import sys
+import time
 
 class opts(object):
   def __init__(self):
@@ -283,12 +284,16 @@ class opts(object):
       opt.chunk_sizes.append(slave_chunk_size)
     print('training chunk_sizes:', opt.chunk_sizes)
 
+    opt.time_str = time.strftime('%Y-%m-%d-%H-%M')
     opt.root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
     opt.data_dir = os.path.join(opt.root_dir, 'data')
     opt.exp_dir = os.path.join(opt.root_dir, 'exp', opt.task)
     opt.save_dir = os.path.join(opt.exp_dir, opt.exp_id)
+    opt.log_dir = os.path.join(opt.exp_dir, opt.exp_id, 'logs_{}'.format(opt.time_str))
     opt.debug_dir = os.path.join(opt.save_dir, 'debug')
     print('The output will be saved to ', opt.save_dir)
+
+    
     
     if opt.resume and opt.load_model == '':
       model_path = opt.save_dir[:-4] if opt.save_dir.endswith('TEST') \

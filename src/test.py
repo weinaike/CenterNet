@@ -20,8 +20,7 @@ from external.nms import soft_nms
 from opts import opts
 from logger import Logger
 from utils.utils import AverageMeter
-from datasets.dataset_factory import dataset_factory, get_dataset
-# from datasets.dataset.point import PointOTF, get_dataset
+from datasets.dataset_factory import  dataset_factory
 from detectors.detector_factory import detector_factory
 
 
@@ -140,8 +139,7 @@ def test(opt):
   print("----------------test-------------")
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
 
-  #Dataset = dataset_factory[opt.dataset]
-  Dataset = get_dataset(opt.dataset, opt.task)
+  Dataset = dataset_factory[opt.dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
   # Logger(opt)

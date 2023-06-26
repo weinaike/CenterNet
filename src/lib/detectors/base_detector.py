@@ -97,7 +97,7 @@ class BaseDetector(object):
     
     loaded_time = time.time()
     load_time += (loaded_time - start_time)
-    gts = meta["ann"].copy()
+    
     detections = []
     for scale in self.scales:
       scale_start_time = time.time()
@@ -140,6 +140,7 @@ class BaseDetector(object):
     tot_time += end_time - start_time
 
     if self.opt.debug >= 1:
+      gts = meta["ann"].copy()
       self.show_results(debugger, image, results,gts)
 
     # if self.opt.debug >=4:
