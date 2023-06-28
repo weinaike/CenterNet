@@ -30,7 +30,7 @@ class PointOTF(data.Dataset):
     if self.split == "train":
       self.num_samples = self.opt.sample_num
     else:
-      self.num_samples = 256
+      self.num_samples = 1000
     self.num_classes = len(self.opt.labels)
 
 
@@ -149,7 +149,7 @@ class PointOTF(data.Dataset):
     gt_det = []
     for k in range(num_objs):
       ann = anns[k]
-      bbox = np.array([ann[1] - ann[3]//2, ann[2] - ann[4]/2, ann[1] + ann[3]/2,ann[2] + ann[4]/2], dtype=np.float32) / self.opt.down_ratio
+      bbox = np.array([ann[1] - ann[3]/2, ann[2] - ann[4]/2, ann[1] + ann[3]/2,ann[2] + ann[4]/2], dtype=np.float32) / self.opt.down_ratio
       # print("bbox",bbox)
       cls_id = ann[0]
 

@@ -76,7 +76,7 @@ class BaseDetector(object):
   def debug(self, debugger, images, dets, output, scale=1):
     raise NotImplementedError
 
-  def show_results(self, debugger, image, results, gt=None):
+  def show_results(self, debugger, image, results, gts=None):
    raise NotImplementedError
 
   def run(self, image_or_path_or_tensor, meta=None):
@@ -140,11 +140,13 @@ class BaseDetector(object):
     tot_time += end_time - start_time
 
     if self.opt.debug >= 1:
-      gts = meta["ann"].copy()
-      self.show_results(debugger, image, results,gts)
+      gts = None
+      if "ann" in meta.keys():
+        gts = meta["ann"].copy()
+      self.show_results(debugger, image, results, gts)
 
-    # if self.opt.debug >=4:
-    #   debugger.save_all_imgs(self.opt.debug_dir, prefix='debug_')
+    if self.opt.debug >=4:
+      debugger.save_all_imgs(self.opt.debug_dir, prefix='debug_')
 
     
     return {'results': results, 'tot': tot_time, 'load': load_time,

@@ -149,7 +149,7 @@ def test(opt):
   dataset = Dataset(opt, split)
   detector = Detector(opt)
   data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
-  results = {}
+
   num_iters = len(dataset)
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
   time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
@@ -218,9 +218,10 @@ def test(opt):
 
   bar.finish()
   # dataset.run_eval(results, opt.save_dir)
-
+  if not os.path.exists(opt.save_dir):
+    os.mkdir(opt.save_dir)
   for cls in cls_names:
-    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.5)
+    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.1)
     aps += [ap]
     print(('AP for {} = {:.4f} '.format(cls, ap,)))
     with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:

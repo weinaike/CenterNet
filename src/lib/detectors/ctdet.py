@@ -86,10 +86,8 @@ class CtdetDetector(BaseDetector):
 
       # hm = output['hm'].sigmoid_()
       hm = output['hm']
-      debugger.add_img(hm[i][0].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(0))
-      debugger.add_img(hm[i][1].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(1))
-      debugger.add_img(hm[i][2].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(2))
-      debugger.add_img(hm[i][3].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(3))
+      for j in range(self.num_classes):
+        debugger.add_img(hm[i][j].detach().cpu().numpy(), img_id='output_pred_hm_cls_{}'.format(j))
 
       pred = debugger.gen_colormap(output['hm'][i].detach().cpu().numpy())
       debugger.add_img(pred, img_id='output_pred_hm_{:.1f}'.format(scale))
@@ -101,19 +99,19 @@ class CtdetDetector(BaseDetector):
                                  detection[i, k, 4], 
                                  img_id='out_pred_{:.1f}'.format(scale))
 
-  def show_results(self, debugger, image, results, gts):
+  def show_results(self, debugger, image, results, gts = None):
     # print(image.shape)
     image = image.repeat(3, axis=0)
     debugger.add_img(image.transpose(1,2,0), img_id='ctdet')
     debugger.add_img(image.transpose(1,2,0), img_id='src')
     debugger.add_img(image.transpose(1,2,0), img_id='src_with_point')
-    debugger.add_circle(gts, img_id='src_with_point')
+    if gts is not None:
+      debugger.add_circle(gts, img_id='src_with_point')
+      debugger.add_circle(gts, img_id='ctdet')
     for j in range(1, self.num_classes + 1):
       for bbox in results[j]:
         if bbox[4] > self.opt.vis_thresh:
           debugger.add_coco_bbox(bbox[:4], j - 1, bbox[4], img_id='ctdet')
-          debugger.add_circle_bbox(np.append(bbox,j-1),img_id='src_with_point')
-
-    debugger.add_circle(gts, img_id='ctdet')
+          debugger.add_circle_bbox(np.append(bbox,j-1),img_id='src_with_point') 
 
     debugger.show_all_imgs(pause=self.pause)

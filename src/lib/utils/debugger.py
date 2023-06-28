@@ -78,7 +78,7 @@ class Debugger(object):
       img = 255 - img
     self.imgs[img_id] = img.copy()
   
-  def add_mask(self, mask, bg, imgId = 'default', trans = 0.8):
+  def add_mask(self, mask, bg, imgId = 'default', trans = 0.5):
     self.imgs[imgId] = (mask.reshape(
       mask.shape[0], mask.shape[1], 1) * 255 * trans + \
       bg * (1 - trans)).astype(np.uint8)
@@ -88,7 +88,7 @@ class Debugger(object):
     if pause:
       cv2.waitKey()
   
-  def add_blend_img(self, back, fore, img_id='blend', trans=0.7):
+  def add_blend_img(self, back, fore, img_id='blend', trans=0.5):
     if self.theme == 'white':
       fore = 255 - fore
     if fore.shape[0] != back.shape[0] or fore.shape[0] != back.shape[1]:

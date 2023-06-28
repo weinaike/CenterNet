@@ -1,10 +1,10 @@
-cp data/PSF0620_04_4_40.npy data/PSF0620_04_4_40_2.npy
+# cp data/PSF0620_04_4_40.npy data/PSF0620_04_4_40_2.npy
 
-cd src/lib/utils/
+# cd src/lib/utils/
 
-python PointSample.py --otf_file ../../../data/PSF0620_04_4_40_2.npy
+# python PointSample.py --otf_file ../../../data/PSF0620_04_4_40_2.npy
 
-cd ../../../
+# cd ../../../
 
 
 cd src
@@ -14,12 +14,12 @@ python main.py ctdet --exp_id infrared_point_res34_384 --arch res_34 --dataset p
                      --hm_weight 1e5 --labels 1 3 5 --have_noise True --noise_sigma 0.1 \
                      --sample_num 8192 --point_type ones_rand --point_len 111 --hm_gauss 3 --otf_file ../data/PSF0620_04_4_40_2.npy
 # test
-python test.py ctdet --exp_id infrared_point_res34_384 --arch res_34 --dataset point --mse_loss --not_prefetch_test \
-                    --debug 0  --vis_thresh 0.5  --labels 1 3 5  --have_noise True --noise_sigma 0.1 --gpus 1 \
-                    --point_type ones_rand --point_len 111 --hm_gauss 3 --resume --otf_file ../data/PSF0620_04_4_40_2.npy
+# python test.py ctdet --exp_id infrared_point_res34_384 --arch res_34 --dataset point --mse_loss --not_prefetch_test \
+#                     --debug 0  --vis_thresh 0.5  --labels 1 3 5  --have_noise True --noise_sigma 0.1 --gpus 1 \
+#                     --point_type ones_rand --point_len 111 --hm_gauss 3 --resume --otf_file ../data/PSF0620_04_4_40_2.npy
 
 
-cd ..
+# cd ..
 
 
 #8192:

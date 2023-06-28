@@ -17,13 +17,12 @@ from trains.train_factory import train_factory
 
 
 def main(opt):
+  logger = Logger(opt)
   torch.manual_seed(opt.seed)
   torch.backends.cudnn.benchmark = not opt.not_cuda_benchmark and not opt.test
   Dataset = dataset_factory[opt.dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
-  print(opt)
-
-  logger = Logger(opt)
+  print(opt)  
 
   os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpus_str
   opt.device = torch.device('cuda' if opt.gpus[0] >= 0 else 'cpu')
@@ -76,7 +75,7 @@ def main(opt):
       logger.scalar_summary('train_{}'.format(k), v, epoch)
       logger.write('{} {:8f} | '.format(k, v))
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
-      save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(mark)), 
+      save_model(os.path.join(opt.log_dir, 'model_{}.pth'.format(mark)), 
                  epoch, model, optimizer)
       with torch.no_grad():
         log_dict_val, preds = trainer.val(epoch, val_loader)
@@ -85,14 +84,14 @@ def main(opt):
         logger.write('{} {:8f} | '.format(k, v))
       if log_dict_val[opt.metric] < best:
         best = log_dict_val[opt.metric]
-        save_model(os.path.join(opt.save_dir, 'model_best.pth'), 
+        save_model(os.path.join(opt.log_dir, 'model_best.pth'), 
                    epoch, model)
     else:
-      save_model(os.path.join(opt.save_dir, 'model_last.pth'), 
+      save_model(os.path.join(opt.log_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
     logger.write('\n')
     if epoch in opt.lr_step:
-      save_model(os.path.join(opt.save_dir, 'model_{}.pth'.format(epoch)), 
+      save_model(os.path.join(opt.log_dir, 'model_{}.pth'.format(epoch)), 
                  epoch, model, optimizer)
       lr = opt.lr * (0.1 ** (opt.lr_step.index(epoch) + 1))
       print('Drop LR to', lr)
@@ -103,3 +102,6 @@ def main(opt):
 if __name__ == '__main__':
   opt = opts().parse()
   main(opt)
+  from test import test
+  opt.load_model = os.path.join(opt.save_dir, 'model_best.pth')
+  test(opt)

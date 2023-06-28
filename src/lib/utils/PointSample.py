@@ -87,9 +87,13 @@ def gen_point_psf(point_patch, otf_list):
     centery = h//2 + int(h*random.uniform(0,0.5))
 
     point_source_plan = np.zeros((pc,h+h//2, w+w//2))
-    point_source_plan[:,(centery-ph//2-1):(centery+ph//2), (centerx-pw//2-1):(centerx+pw//2)] = point_patch
+    point_source_plan[:,(centery-ph//2):(centery+ph//2+1), (centerx-pw//2):(centerx+pw//2+1)] = point_patch
+    # print("point_source_plan",point_source_plan.shape)
+    # print((centery-ph//2),(centery+ph//2+1), (centerx-pw//2),(centerx+pw//2+1))
+    # print(centery, centerx)
 
     otf_3d = np.pad(otf_list, ((0,0),(h//4,h//4),(w//4,w//4)),mode='constant', constant_values=0)
+    # print("otf_3d",otf_3d.shape)
     point_image_amp = np.zeros(otf_3d.shape)
     if False:
         with torch.no_grad:
@@ -110,8 +114,9 @@ def gen_point_psf(point_patch, otf_list):
                 
                 point_image_amp[i,:,:] = torch.abs(point_image).numpy()
     else:
-        point_source_fft = np.fft.fft2(point_source_plan)     # fft2 ,对于 cpu 数据，ubuntu平台计算结果有问题，cuda计算正常（但是数据搬移耗时长，意义不大），
-        otf_fft = np.fft.fft2(otf_3d)
+        
+        point_source_fft = np.fft.fft2(np.fft.ifftshift(point_source_plan,(1,2)))     # fft2 ,对于 cpu 数据，ubuntu平台计算结果有问题，cuda计算正常（但是数据搬移耗时长，意义不大），
+        otf_fft = np.fft.fft2(np.fft.ifftshift(otf_3d,(1,2)))
 
         fft_dot = np.multiply(point_source_fft, otf_fft)
         
@@ -181,7 +186,7 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
     #点目标， 其宽度obj_len, 要求奇数
     obj_num = random.randint(1,3)
     #方块目标， 其宽度rect_len, 要求奇数
-    rect_len = 99
+    rect_len = obj_width
     rect_patchs, _ = gen_point_patchs(wave_count,[0],point_type=point_type, weight_mode="gauss", have_noise=have_noise, point_len=rect_len)
     target = list()
     for i in range(obj_num):
@@ -203,13 +208,15 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
         # last_h = rect_center[0] + point_cy - rect_len//2
         # last_w = rect_center[1] + point_cx - rect_len//2
 
-        target.append([label, last_w, last_h, obj_width, obj_width ])
+        target.append([label, last_w, last_h, 11, 11])
     # np.save("rect_patchs.npy",rect_patchs)
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
     sample, rect_center = gen_point_psf(rect_patchs, otf_list)
     for i in range(len(target)):
         target[i][1] += rect_center[1] 
         target[i][2] += rect_center[0] 
+        target[i].append(rect_center[1])
+        target[i].append(rect_center[0])
 
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
@@ -224,19 +231,14 @@ def gen_merge_sample(otf_list, labels, obj_width, point_type="ones", weight_mode
     # print("test")
     return sample, target
 
-def save_merge_point(id, otf_file):
+def save_merge_point(id, otf_file, labels = [1,3,5], point_len = 111 , point_type = "ones", noise_sigma = 0.01, merge = True ):
     
-    path = otf_file[:-4]
-    labels = [1,3,5]
-
-    otf_list = np.load(otf_file)
-    
-    point_len = 111 
-    point_type = "ones"
-    noise_sigma = 0.01
-
-    # sample, target = gen_merge_sample(otf_list,labels,point_len,point_type,"gauss",False,noise_sigma)
-    sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, "gauss", True)
+    path = otf_file[:-4]   
+    otf_list = np.load(otf_file)  
+    if merge:
+        sample, target = gen_merge_sample(otf_list,labels,point_len,point_type,"gauss",True,noise_sigma)
+    else:
+        sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, "gauss", True)
     if not os.path.exists(path):
         os.mkdir(path)
     # print(path)
@@ -250,14 +252,25 @@ if __name__ == "__main__":
     import argparse 
     parser = argparse.ArgumentParser()
     # basic experiment setting
-    parser.add_argument('--otf_file', default="../../../data/PSF0620_04_4_40.npy", help='')
+    parser.add_argument('--otf_file', default="../../../data/PSF0620_04_4_40.npy", type=str, help='')
+    parser.add_argument('--point_len', default=111, type=int,help='')
+    parser.add_argument('--point_type', default="ones", type=str, help='')
+    parser.add_argument('--noise_sigma', default=0.01, type=float,help='')
+    parser.add_argument('--labels', nargs='+',default=[1,3,5], type=int, help='a list of integers')
+    parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     args = parser.parse_args()
 
     pool = mp.Pool(processes=20)
     otf_file = args.otf_file
+    labels = args.labels
+    point_len = args.point_len
+    point_type = args.point_type
+    noise_sigma = args.noise_sigma
+    merge_bg = args.merge_bg
+
     num  = 10000
     for i in range(num):
-        pool.apply_async(save_merge_point, (i,otf_file,))
+        pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, noise_sigma, merge_bg,))
         # gen_merge_sample(otf_list, labels, point_len, point_type, weight_mode = "gauss", have_noise = True , noise_sig = noise_sigma)
     print("----start----")
     pool.close()
