@@ -27,10 +27,12 @@ class PointOTF(data.Dataset):
     super(PointOTF, self).__init__()
     self.split = split
     self.opt = opt
+
+    self.val_num = 1000
     if self.split == "train":
       self.num_samples = self.opt.sample_num
     else:
-      self.num_samples = 1000
+      self.num_samples = self.val_num
     self.num_classes = len(self.opt.labels)
 
 
@@ -74,12 +76,12 @@ class PointOTF(data.Dataset):
       start = 0
       end = all_sample
       if self.split == "train":
-        if (all_sample - 256) < self.num_samples:
+        if (all_sample - self.val_num) < self.num_samples:
           print("num of sample is not enough")
           assert(0)
         end = self.num_samples
       else:
-        start = all_sample - 256
+        start = all_sample - self.val_num
       print("file index of sample ", start, end)
       for i in range(start, end):  
         sample = np.load(os.path.join(path,"sample_{:05d}.npy".format(i)))

@@ -221,7 +221,7 @@ def test(opt):
   if not os.path.exists(opt.save_dir):
     os.mkdir(opt.save_dir)
   for cls in cls_names:
-    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.1)
+    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.01)
     aps += [ap]
     print(('AP for {} = {:.4f} '.format(cls, ap,)))
     with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:
