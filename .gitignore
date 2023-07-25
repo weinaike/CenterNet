@@ -1,18 +1,11 @@
-legacy/*
+
 .DS_Store
 debug/*
-*.DS_Store
-*.json
-*.mat
-src/.vscode/*
-preds/*
-*.h5
-*.pth
-*.checkpoint
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
+
 
 # C extensions
 *.so
