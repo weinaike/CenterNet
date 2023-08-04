@@ -2,7 +2,6 @@
 .DS_Store
 debug/*
 
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
@@ -28,7 +27,8 @@ wheels/
 .installed.cfg
 *.egg
 data/PSF0620_04_4_40
-data/PSF0620_04_4_40_2
+data/PSF0620_04_4_40_0727
+data/PSF0620_04_4_40_0802
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
