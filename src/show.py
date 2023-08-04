@@ -16,29 +16,40 @@ from utils.utils import AverageMeter
 from datasets.point import PointOTF
 from detectors.ctdet import CtdetDetector
 
+def gen_color(cls):
+    cmap = {0:(139, 0 , 255),
+            1:(0, 0, 255), 
+            2:(0, 127, 255), 
+            3:(0, 255, 0), 
+            4:(255, 255, 0), 
+            5:(255, 0, 0)}
+    return cmap[cls]
+
 def add_circle(img, anns, radius = 3): 
     mask = img.copy()
     for ann in anns:
         px = int(ann[1])
         py = int(ann[2])
         cls = int(ann[0])
-        c = (255,0,0)
-        if cls == 5:
-            c = (255,0,0)
-        if cls == 3:
-            c = (0,255,0)
-        if cls == 1:
-            c = (0,0,255)
+        conf = min(float(ann[5]),1.0)
+        c = gen_color(cls)
+        name = "C"
+        # if cls == 5:
+        #     name = "C3:{:.2f}".format(conf)
+        # if cls == 3:
+        #     name = "C2:{:.2f}".format(conf)
+        # if cls == 1:
+        #     name = "C1:{:.2f}".format(conf)
         cv2.circle(mask,(px,py), radius, c, -1)
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(mask, str(cls), (px + 5 , py - 5), font, 0.5 , c,  thickness=1, lineType=cv2.LINE_AA)
+        cv2.putText(mask, name+str(cls), (px + 5 , py - 5), font, 0.5 , c,  thickness=1, lineType=cv2.LINE_AA)
     return mask
 
 def gen_background(heatmap, anns, width = 111):
     h,w=heatmap.shape
     mask = np.zeros((h,w,3))
-    rectx = anns[0][5]
-    recty = anns[0][6]
+    rectx = anns[0][-2]
+    recty = anns[0][-1]
 
     x1 = rectx - width//2
     x2 = rectx + width//2
@@ -51,18 +62,25 @@ def gen_background(heatmap, anns, width = 111):
 def add_gt_mask(heatmap, anns, radius=3, factor= 1.0): 
     h,w=heatmap.shape
     mask = np.zeros((h,w,3))
+    mask = np.ascontiguousarray(mask, dtype=np.uint8)
     for ann in anns:
         px = int(ann[1])
         py = int(ann[2])
         cls = int(ann[0])
-
-        if cls == 5:
-            mask[:,:,0] = draw_msra_gaussian(mask[:,:,0],(px,py), radius)
-        if cls == 3:
-            mask[:,:,1] = draw_msra_gaussian(mask[:,:,1],(px,py), radius)
-        if cls == 1:
-            mask[:,:,2] = draw_msra_gaussian(mask[:,:,2],(px,py), radius)
-    return np.ascontiguousarray(mask * 255 * factor, dtype=np.uint8)
+        color = gen_color(cls)
+        cv2.circle(mask, (px,py), radius, color,-1)
+        # if cls == 5:
+        #     mask[:,:,0] = draw_msra_gaussian(mask[:,:,0],(px,py), radius)
+        # if cls == 3:
+        #     mask[:,:,1] = draw_msra_gaussian(mask[:,:,1],(px,py), radius)
+        # if cls == 1:
+        #     mask[:,:,2] = draw_msra_gaussian(mask[:,:,2],(px,py), radius)
+        # name = ""
+        # for it in ann[5:11]:
+        #     name += "_{:.1f}".format(it) 
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # cv2.putText(mask, name, (px + 5 , py - 5), font, 0.5 , (255,255,255),  thickness=1, lineType=cv2.LINE_AA)
+    return mask
 
 
 def show(opt):
@@ -77,7 +95,7 @@ def show(opt):
     detector = CtdetDetector(opt)    
     
     idx = 9996
-    for idx in range(9995, 10000):
+    for idx in range(9960, 9980):
         print("\n-------------{}-------------".format(idx))
         img = np.load("../data/PSF0620_04_4_40/sample_{:05d}.npy".format(idx))
         with open("../data/PSF0620_04_4_40/sample_{:05d}.json".format(idx), "r") as fp:
@@ -91,7 +109,7 @@ def show(opt):
         predicts = list()
         for cls_id, dets in ret['results'].items():
             for det in dets:
-                if det[4] > 0.5:
+                if det[4] > opt.vis_thresh:
                     label = opt.labels[cls_id-1]
                     xc = int((det[0]+det[2])/2)
                     yc = int((det[1]+det[3])/2)
@@ -115,7 +133,7 @@ def show(opt):
         img = np.ascontiguousarray(img, dtype=np.uint8)
 
         # object 
-        obj = cv2.addWeighted(backgroud, 0.5, points_mask, 0.5, 0)
+        obj = cv2.addWeighted(backgroud, 0.1, points_mask,0.9, 0)
 
         # image + heatmap
         result = add_circle(img, predicts)
