@@ -5,6 +5,7 @@ import random
 import numpy as np
 import json
 import math
+import time
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 debug = False
@@ -16,30 +17,34 @@ def closest_power_of_two(n):
 
 
 def get_true_background(rect_len: int):
-    bg_dict = {-2 : "../../../data/sunny_sky_backgrouod.npy",  
-               -3 : "../../../data/cloudy_sky_backgrouod.npy"}
+    
+    sky_bg = None
+    bg_label = None
 
+    bg_dict = {-2 : "../../../data/sunny_sky_backgrouod.npy",  
+            -3 : "../../../data/cloudy_sky_backgrouod.npy"}
     bg_label = random.choice(list(bg_dict.keys()))
     try:
         sky_bg = np.load(bg_dict[bg_label])
     except:
         items = bg_dict[bg_label].split("/")
         sky_bg = np.load(os.path.join(".","../",items[-2],items[-1]))
-    sky_bg = np.array(sky_bg, dtype=float)
+
     # n:样本数， c:光谱通道数， h: 高， w:宽
     n, c, h, w = sky_bg.shape
     n_idx = random.choice(range(n))
-    step = 2
+    step = 1
     rect_len = rect_len * step
     h_s = random.choice(range(h - rect_len))
     h_e = h_s + rect_len
     w_s = random.choice(range(w - rect_len))
     w_e = w_s + rect_len
-
+    
     rect_patchs = sky_bg[n_idx, :, h_s:h_e:step, w_s:w_e:step]
 
     if debug:
         np.save("debug/background.npy",rect_patchs)
+
     return rect_patchs, bg_label
 
 
@@ -257,12 +262,15 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
     obj_num = 1
     if random.random() > 0.2:
         obj_num = 2
+    
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 384
     if true_bg:
         rect_patchs, bg_label = get_true_background(rect_len)        
     else:
         rect_patchs, bg_label, _ = gen_point_patchs(wave_count,[0],point_type="ones_rand", weight_mode="all_one", have_noise=have_noise, point_len=rect_len)
+    
+
     if bg_label < 0:
         prmse = calc_prmse(rect_patchs)
         # print("prmse:",prmse)
@@ -270,6 +278,7 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         # print("norm:",np.sqrt(np.linalg.norm(rect_patchs.ravel())))
         rect_patchs = rect_patchs / prmse * nsr
     target = list()
+   
 
     objs = list()
     for i in range(obj_num):
@@ -307,6 +316,8 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         np.save("debug/rect_patchs.npy",rect_patchs)
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
     sample, rect_center = gen_point_psf_new(rect_patchs, otf_list)
+
+
     for i in range(len(target)):
         target[i][1] += rect_center[1] - rect_len//2
         target[i][2] += rect_center[0] - rect_len//2
@@ -369,6 +380,7 @@ if __name__ == "__main__":
     save_path = args.save_path
 
     num  = args.num
+
     for i in range(num):
         # save_merge_point(i,otf_file,labels, point_len, point_type, weight_mode,  nsr, true_bg, save_path)
         pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, weight_mode, nsr, true_bg, save_path))
