@@ -33,6 +33,7 @@ class opts(object):
                                   'Reloaded the optimizer parameter and '
                                   'set load_model to model_last.pth '
                                   'in the exp dir if load_model is empty.') 
+    self.parser.add_argument('--commit', default='', help='commit infomation')
 
     # system
     self.parser.add_argument('--gpus', default='0', 
@@ -140,7 +141,11 @@ class opts(object):
                              help='path to otf_file')
     self.parser.add_argument('--point_len', default=111,type= int, help='path to otf_file')
     self.parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
-    
+    self.parser.add_argument('--dataset_path', default=None,type= str, help='path to dataset')
+    self.parser.add_argument('--data_mode', default='all',type= str, help='all, 1point, 2point')
+
+
+
     ############### gen point OTF sample 
     self.parser.add_argument('--point_type', default='rand', type= str, help='mode of point type')
     self.parser.add_argument('--weight_mode', default='gauss', type= str, help='mode of wavelength weight ')
@@ -148,6 +153,7 @@ class opts(object):
     self.parser.add_argument('--noise_sigma', default=0, type=float, help='noise sigma') 
     self.parser.add_argument('--labels', nargs='+',default=[0,3,6,9], type=int, help='a list of integers')
     self.parser.add_argument('--sample_num', default=2048, type=int, help='num of sample in one train epoch')
+    self.parser.add_argument('--force_merge_labels',  action='store_true', help='force_merge_labels, label is 0, num is 1')
  
     # multi_pose
     self.parser.add_argument('--aug_rot', type=float, default=0, help='probability of applying rotation augmentation.')
@@ -165,8 +171,7 @@ class opts(object):
     self.parser.add_argument('--mse_loss', action='store_true',
                              help='use mse loss or focal loss to train '
                                   'keypoint heatmaps.')
-    self.parser.add_argument('--hm_gauss', type=float, default=3,
-                             help='radius of heatmaps.')
+    self.parser.add_argument('--hm_gauss', type=float, default=3, help='radius of heatmaps.')
     
     # ctdet
     self.parser.add_argument('--reg_loss', default='l1',
@@ -304,10 +309,10 @@ class opts(object):
   def update_dataset_info_and_set_heads(self, opt, dataset):
     input_h, input_w = dataset.default_resolution
     opt.mean, opt.std = dataset.mean, dataset.std
-    try:
-      opt.num_classes = dataset.num_classes
-    except:
-      opt.num_classes = len(opt.labels)
+
+    opt.num_classes = len(opt.labels)
+    if opt.force_merge_labels:
+      opt.num_classes = 1
 
     # input_h(w): opt.input_h overrides opt.input_res overrides dataset default
     input_h = opt.input_res if opt.input_res > 0 else input_h

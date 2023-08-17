@@ -7,6 +7,42 @@ import json
 import math
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
+debug = False
+
+def closest_power_of_two(n):
+    power = math.floor(math.log2(n)) + 1
+    result = 2 ** power
+    return result
+
+
+def get_true_background(rect_len: int):
+    bg_dict = {-2 : "../../../data/sunny_sky_backgrouod.npy",  
+               -3 : "../../../data/cloudy_sky_backgrouod.npy"}
+
+    bg_label = random.choice(list(bg_dict.keys()))
+    try:
+        sky_bg = np.load(bg_dict[bg_label])
+    except:
+        items = bg_dict[bg_label].split("/")
+        sky_bg = np.load(os.path.join(".","../",items[-2],items[-1]))
+    sky_bg = np.array(sky_bg, dtype=float)
+    # n:样本数， c:光谱通道数， h: 高， w:宽
+    n, c, h, w = sky_bg.shape
+    n_idx = random.choice(range(n))
+    step = 2
+    rect_len = rect_len * step
+    h_s = random.choice(range(h - rect_len))
+    h_e = h_s + rect_len
+    w_s = random.choice(range(w - rect_len))
+    w_e = w_s + rect_len
+
+    rect_patchs = sky_bg[n_idx, :, h_s:h_e:step, w_s:w_e:step]
+
+    if debug:
+        np.save("debug/background.npy",rect_patchs)
+    return rect_patchs, bg_label
+
+
 
 def gen_weight_and_label(wave_count, labels, weight_mode="onehot", have_noise = True):
     # labels ：取值（0-9） 点的标签类别，len(labels): 二分类，五分类，十分类
@@ -75,6 +111,7 @@ def gen_point_patchs(wave_count, labels, point_type="ones", weight_mode="onehot"
         point_patchs = point_patchs * random.uniform(0.8, 1.0)
     elif point_type == "ones_rand":
         point_patchs = np.random.rand(c,point_len,point_len) * 0.1 + 0.9
+        point_patchs[:,point_len//2,point_len//2] = np.ones([c])
     else:
         assert(0)
     point_patchs = point_patchs* weight.reshape(c,1,1)
@@ -124,84 +161,69 @@ def gen_point_psf(point_patch, otf_list):
     # print(Intensity)
     return Intensity, [centery,centerx]
 
-def gen_sample(otf_list, labels, point_type="ones", weight_mode = "gauss", have_noise = True ):
-    point_len = 3
-    [wave_count,h,w ] = otf_list.shape
-    point_patchs, label = gen_point_patchs(wave_count, labels, 
-                                           point_type=point_type, weight_mode=weight_mode, 
-                                           have_noise=have_noise, point_len=point_len) 
-    sample, [ch,cw] = gen_point_psf(point_patchs, otf_list) 
-      
-    sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-    [h,w] = sample.shape
-    if have_noise:
-        sigm = 0.4
-        sample = sample + sigm * np.random.rand(h,w)
-        sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-
-    sample = sample.reshape(1,h,w) 
-    # print(sample)
-    return sample, [label, cw, ch, point_len, point_len]
+def gen_point_psf_new(point_patch, otf_list): 
+    assert(otf_list.shape[0] == point_patch.shape[0])
+    [c,h,w] = otf_list.shape
+    [pc,ph,pw] = point_patch.shape
+    
+    expand_h = closest_power_of_two(h + ph)
+    expand_w = closest_power_of_two(w + pw)
+    
+    
+    centerx = expand_w // 2
+    centery = expand_h // 2
 
 
-def gen_multi_point_sample(otf_list, labels, obj_width, point_type="ones", weight_mode = "gauss", have_noise = True ):
+    # padding 
+    pad_ph_1 = (expand_h - ph)//2
+    pad_ph_2 = expand_h - ph - pad_ph_1
 
-    point_len = 3
-    [wave_count,h,w ] = otf_list.shape
-
-    obj_num = random.randint(1,3)
-    target = list()
-    sample = None
-    for i in range(obj_num):
-        point_patchs, label = gen_point_patchs(wave_count, labels, 
-                                            point_type=point_type, weight_mode=weight_mode, 
-                                            have_noise=have_noise, point_len=point_len) 
-        temp, [ch,cw] = gen_point_psf(point_patchs, otf_list) 
-        target.append([label, cw, ch, obj_width, obj_width])
-        if sample is None:
-            sample = temp
-        else:
-            sample += temp
-      
-    sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-    [h,w] = sample.shape
-    if have_noise:
-        sigm = 0.4
-        sample = sample + sigm * np.random.rand(h,w)
-        sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-
-    sample = sample.reshape(1,h,w) 
-    # print(target)
-    return sample, target
+    pad_pw_1 = (expand_w - pw)//2
+    pad_pw_2 = expand_w - pw - pad_pw_1
+    point_source_plan = np.pad(point_patch, ((0,0),(pad_ph_1,pad_ph_2),(pad_pw_1,pad_pw_2)),mode='constant', constant_values=0)
 
 
+    pad_h_1 = (expand_h - h)//2
+    pad_h_2 = expand_h - h - pad_h_1
 
-def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode = "gauss", have_noise = True , noise_sig = 0.1, nsr = 0.1):
-    [wave_count,h,w ] = otf_list.shape
-    #点目标， 其宽度obj_len, 要求奇数
-    obj_num = random.randint(1,2)
-    #方块目标， 其宽度rect_len, 要求奇数
-    rect_len = 111
-    rect_patchs, bg_label, _ = gen_point_patchs(wave_count,[0],point_type="ones_rand", weight_mode="all_one", have_noise=have_noise, point_len=rect_len)
-    if bg_label == -1:
-        rect_patchs = rect_patchs * nsr
-    target = list()
+    pad_w_1 = (expand_w - w)//2
+    pad_w_2 = expand_w - w - pad_w_1
 
-    objs = list()
-    for i in range(obj_num):
-        objs.append(gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise, point_len=obj_len) )
+    otf_3d = np.pad(otf_list, ((0,0),(pad_h_1, pad_h_2),(pad_w_1,pad_w_2)),mode='constant', constant_values=0)
 
+    point_image_amp = np.zeros(otf_3d.shape)
+
+    point_source_fft = np.fft.fft2(np.fft.ifftshift(point_source_plan,(1,2)))     # fft2 ,对于 cpu 数据，ubuntu平台计算结果有问题，cuda计算正常（但是数据搬移耗时长，意义不大），
+    otf_fft = np.fft.fft2(np.fft.ifftshift(otf_3d,(1,2)))
+
+    fft_dot = np.multiply(point_source_fft, otf_fft)
+    
+    point_image = np.fft.ifft2(fft_dot)
+    point_image = np.fft.fftshift(point_image,(1,2))
+
+    # crop
+    crop_point_image = point_image[:, (centery-ph//2-1):(centery+ph//2), (centerx-pw//2-1):(centerx+pw//2)]
+
+
+    point_image_amp = np.abs(crop_point_image)
+
+    Intensity = np.sum(point_image_amp,0)
+    [Ic,Ih,Iw] = point_patch.shape
+
+    return Intensity, [Ih//2,Iw//2]
+
+
+def gen_centers(rect_len:int, edge:int, obj_num:int):
     pts = list()
-
     if obj_num == 2:
-        radius = random.randint(obj_len, rect_len - obj_len * 2) // 2
+        radius = random.randint(0, rect_len - edge*2) // 2
         theta = random.uniform(0, 2*3.14)
 
         x_len = int(math.cos(theta) * radius)
         y_len = int(math.sin(theta) * radius)
 
-        resdiualx = (rect_len - abs(x_len) * 2 - obj_len * 2) // 2
-        resdiualy = (rect_len - abs(y_len) * 2 - obj_len * 2 ) // 2
+        resdiualx = (rect_len - abs(x_len) * 2 - edge * 2) // 2
+        resdiualy = (rect_len - abs(y_len) * 2 - edge * 2 ) // 2
 
         cx = random.randint(rect_len//2 - resdiualx, rect_len//2 + resdiualx)
         cy = random.randint(rect_len//2 - resdiualy, rect_len//2 + resdiualy)
@@ -215,9 +237,54 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         pts.append([p2x,p2y])
     else:
         for i in range(obj_num):
-            startx = random.randint(obj_len, rect_len - obj_len * 2) 
-            starty = random.randint(obj_len, rect_len - obj_len * 2) 
+            startx = random.randint(edge, rect_len - edge) 
+            starty = random.randint(edge, rect_len - edge) 
             pts.append([startx, starty])
+    return pts
+
+def calc_prmse(rect_patchs):
+    [c, h, w] = rect_patchs.shape
+    tmp = 0
+    for i in range(c):
+        tmp += np.mean(np.power(rect_patchs[i,:,:],2))
+    return np.sqrt(tmp/c)
+
+
+
+def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode = "gauss", have_noise = True , nsr = 0.1, true_bg = False):
+    [wave_count,h,w ] = otf_list.shape
+    #点目标， 其宽度obj_len, 要求奇数
+    obj_num = 1
+    if random.random() > 0.2:
+        obj_num = 2
+    #方块目标， 其宽度rect_len, 要求奇数
+    rect_len = 384
+    if true_bg:
+        rect_patchs, bg_label = get_true_background(rect_len)        
+    else:
+        rect_patchs, bg_label, _ = gen_point_patchs(wave_count,[0],point_type="ones_rand", weight_mode="all_one", have_noise=have_noise, point_len=rect_len)
+    if bg_label < 0:
+        prmse = calc_prmse(rect_patchs)
+        # print("prmse:",prmse)
+        # print("max:",np.max(rect_patchs))
+        # print("norm:",np.sqrt(np.linalg.norm(rect_patchs.ravel())))
+        rect_patchs = rect_patchs / prmse * nsr
+    target = list()
+
+    objs = list()
+    for i in range(obj_num):
+        objs.append(gen_point_patchs(wave_count, labels, point_type, weight_mode, have_noise, point_len=obj_len) )
+    if debug:
+        for i in range(len(objs)):
+            np.save("debug/point_{}.npy".format(i), objs[i][0])
+
+    pts = list()
+
+    if rect_len > h:
+        edge = h // 2
+    else:
+        edge = obj_len
+    pts = gen_centers(rect_len, edge, obj_num)
 
     for i in range(obj_num):
         point_patchs = objs[i][0]
@@ -233,39 +300,36 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         point_cx = (startx + endx) // 2
         point_cy = (starty + endy) // 2
 
-        last_h = point_cy - rect_len//2
-        last_w = point_cx - rect_len//2
-        target.append([label, last_w, last_h, obj_len, obj_len]+weight)
-    # np.save("rect_patchs.npy",rect_patchs)
+        # 标签, 中心坐标x, 中心坐标y, 宽， 高， 标签权重， 背景标签， 信噪比， 
+        target.append([label, point_cx, point_cy, obj_len, obj_len] + weight + [bg_label] + [nsr])
+    
+    if debug:
+        np.save("debug/rect_patchs.npy",rect_patchs)
     #获取样本sample，及加载在其上的块目标的中心位置，rect_center[h,w]
-    sample, rect_center = gen_point_psf(rect_patchs, otf_list)
+    sample, rect_center = gen_point_psf_new(rect_patchs, otf_list)
     for i in range(len(target)):
-        target[i][1] += rect_center[1] 
-        target[i][2] += rect_center[0] 
+        target[i][1] += rect_center[1] - rect_len//2
+        target[i][2] += rect_center[0] - rect_len//2
         target[i].append(rect_center[1])
         target[i].append(rect_center[0])
 
     sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
     [h,w] = sample.shape
-    if False:#have_noise:
-        sigm = noise_sig * random.uniform(0,1)
-        # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
-        sample = sample + sigm * np.random.rand(h,w)
-        # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
 
     sample = sample.reshape(1,h,w) 
 
     # print(target)
     return sample, target
 
-def save_merge_point(id, otf_file, labels = [1,3,5], point_len = 5 , point_type = "ones", weight_mode = "gauss", noise_sigma = 0.01, merge = True , nsr = 0.1):
+def save_merge_point(id, otf_file, labels = [1,3,5], point_len = 5 , point_type = "ones", weight_mode = "gauss", nsr = 0.1, true_bg = False, save_path = None):
     
-    path = otf_file[:-4]   
+    path = otf_file[:-4]
+    if save_path is not None :
+        path = save_path
+
     otf_list = np.load(otf_file)  
-    if merge:
-        sample, target = gen_merge_sample(otf_list,labels,point_len,point_type, weight_mode,True,noise_sigma, nsr)
-    else:
-        sample, target = gen_multi_point_sample(otf_list, labels, point_len, point_type, weight_mode, True)
+    sample, target = gen_merge_sample(otf_list,labels,point_len,point_type, weight_mode,True, nsr, true_bg)
+
     if not os.path.exists(path):
         os.mkdir(path)
     # print(path, target)
@@ -280,12 +344,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # basic experiment setting
     parser.add_argument('--otf_file', default="../../../data/PSF0620_04_4_40.npy", type=str, help='')
+    parser.add_argument('--save_path', default=None, type=str, help='')
     parser.add_argument('--point_len', default=5, type=int,help='')
     parser.add_argument('--point_type', default="ones", type=str, help='')
     parser.add_argument('--weight_mode', default="gauss", type=str, help='')
     parser.add_argument('--noise_sigma', default=0.01, type=float,help='')
+    parser.add_argument('--num', default=10000, type=int,help='')
     parser.add_argument('--labels', nargs='+',default=[1,3,5], type=int, help='a list of integers')
     parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
+    parser.add_argument('--true_bg', action='store_true', help='point object merge true backgroud')
     parser.add_argument('--nsr', default=0.1, type=float,help='')
     args = parser.parse_args()
 
@@ -296,13 +363,15 @@ if __name__ == "__main__":
     point_type = args.point_type
     noise_sigma = args.noise_sigma
     merge_bg = args.merge_bg
+    true_bg = args.true_bg
     weight_mode = args.weight_mode
     nsr = args.nsr
+    save_path = args.save_path
 
-    num  = 10000
+    num  = args.num
     for i in range(num):
-        pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, weight_mode, noise_sigma, merge_bg, nsr))
-        # gen_merge_sample(otf_list, labels, point_len, point_type, weight_mode = "gauss", have_noise = True , noise_sig = noise_sigma)
+        # save_merge_point(i,otf_file,labels, point_len, point_type, weight_mode,  nsr, true_bg, save_path)
+        pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, weight_mode, nsr, true_bg, save_path))
     print("----start----")
     pool.close()
     pool.join()

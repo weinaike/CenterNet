@@ -26,12 +26,13 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-data/PSF0620_04_4_40
-data/PSF0620_04_4_40_0727
-data/PSF0620_04_4_40_0802
+data/PSF0620_04_4_40*
 data/sup30
 data/sup60
-data/PSF0815_6_IR_30
+data/PSF0815_6_IR_30*
+data/230816_1126
+data/object
+src/debug
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

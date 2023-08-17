@@ -156,8 +156,8 @@ def test(opt):
   avg_time_stats = {t: AverageMeter() for t in time_stats}
 
   ind = 0
-  aps = []
   cls_names = dataset.labels
+
   annos_cls = {}
   results = {}
   for cls in cls_names:
@@ -220,24 +220,37 @@ def test(opt):
   # dataset.run_eval(results, opt.save_dir)
   if not os.path.exists(opt.save_dir):
     os.mkdir(opt.save_dir)
-  for cls in cls_names:
-    rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=0.01)
-    aps += [ap]
-    print(('AP for {} = {:.4f} '.format(cls, ap,)))
-    with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:
-            cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+
+
+  file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
+  
+  # <4px, <4px, 3<px, <1px, 
+  threshs = [0.01, 0.02, 0.14, 0.33, 0.47, 0.67]
+  for th in threshs:
+    aps = []
+    print("thresh: {:.2f}".format(th))
+    file.writelines("thresh: {:.2f}\n".format(th))
+    for cls in cls_names:
+      rec, prec, ap = voc_eval_new(results[cls], annos_cls, image_ids, cls, ovthresh=th)
+      aps += [ap]
+      print(('AP for {} = {:.4f} '.format(cls, ap,)))
+      file.writelines('AP for {} = {:.4f} \n'.format(cls, ap))
+      with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:
+        cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+      
+      plt.figure()
+      plt.xlim([0.0,1.0])
+      plt.ylim([0.0,1.0])
+      plt.xlabel('recall')
+      plt.ylabel('precision')
+      plt.title('PR cruve')
+      plt.plot(rec, prec, '-r')
+      plt.savefig(os.path.join(opt.save_dir, 'thresh_{}_label_{}_PR.jpg'.format(th,cls)))
+      plt.close()
     
-    plt.figure()
-    plt.xlim([0.0,1.0])
-    plt.ylim([0.0,1.0])
-    plt.xlabel('recall')
-    plt.ylabel('precision')
-    plt.title('PR cruve')
-    plt.plot(rec, prec, '-r')
-    plt.savefig(os.path.join(opt.save_dir, '{}_pr.jpg'.format(cls)))
-
-
-  print(('Mean AP = {:.4f}'.format(np.mean(aps))))
+    print(('Mean AP = {:.4f}\n'.format(np.mean(aps))))
+    file.writelines(('Mean AP = {:.4f}\n'.format(np.mean(aps))))
+  file.close()
   print('~~~~~~~~')
 
 

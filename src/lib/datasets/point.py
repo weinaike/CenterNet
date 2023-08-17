@@ -16,6 +16,19 @@ from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
 from utils.image import draw_dense_reg
 from utils.PointSample import gen_multi_point_sample, gen_merge_sample
 import math
+
+def get_file_list(file, mode):
+  imgs = list()
+  targets = list()
+  with open(file) as f:
+    data = json.load(f)
+  if mode == "all":
+    for key, vals in data.items():
+      for val in vals:
+        imgs.append(val[:-4] + "npy")
+        targets.append(val)
+  return imgs, targets
+
 class PointOTF(data.Dataset):
   mean = np.array([0., 0., 0.],
                    dtype=np.float32).reshape(1, 1, 3)
@@ -27,6 +40,7 @@ class PointOTF(data.Dataset):
     super(PointOTF, self).__init__()
     self.split = split
     self.opt = opt
+    self.force_merge_labels = opt.force_merge_labels
 
     self.val_num = 1000
     if self.split == "train":
@@ -35,31 +49,36 @@ class PointOTF(data.Dataset):
       self.num_samples = self.val_num
     self.num_classes = len(self.opt.labels)
 
-
     self.otf_file = self.opt.otf_file
     self.point_type = self.opt.point_type
     self.weight_mode = self.opt.weight_mode  
     self.labels = self.opt.labels
     self.have_noise = self.opt.have_noise
 
+    ##---------------------强制调整标签----------------
+    if self.force_merge_labels:
+      self.num_classes = 1
+      self.labels = [0]
+
     self.max_objs = self.opt.K
     self.class_name = ['__background__'].extend(self.labels)
     self._valid_ids = np.arange(1, len(self.labels) + 1, dtype=np.int32)
     self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
 
-    self.otf_list = np.load(self.otf_file)
-    
-    [c,h,w] = self.otf_list.shape
-    self.h = h
-    self.w = w
-    self.wave_count = c
-
     self.point_len = self.opt.point_len
+    self.dataset_path = self.opt.dataset_path
+    self.data_mode = self.opt.data_mode
 
     self.imgs = list()
     self.targets = list()
 
     if False:
+      self.otf_list = np.load(self.otf_file)
+      [c,h,w] = self.otf_list.shape
+      self.h = h
+      self.w = w
+      self.wave_count = c
+
       for i in range(self.num_samples):
         otf_noise = np.random.rand(self.wave_count, self.h, self.w) * 0.1 + 0.9
         otf_list = np.multiply(self.otf_list, otf_noise)
@@ -69,6 +88,16 @@ class PointOTF(data.Dataset):
           img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
         self.imgs.append(img)
         self.targets.append(target)
+    elif self.dataset_path is not None:
+      if self.split == "train":
+        file = os.path.join(self.dataset_path, "train.json")
+        self.imgs, self.targets = get_file_list(file, self.data_mode)
+      else:
+        file = os.path.join(self.dataset_path, "val.json")
+        self.imgs, self.targets = get_file_list(file, self.data_mode)
+      self.num_samples = len(self.imgs)
+      if self.opt.sample_num <  self.num_samples:
+        self.num_samples = self.opt.sample_num
     else:
       path = self.otf_file[:-4]
       all_sample = len(os.listdir(path)) // 2
@@ -104,20 +133,35 @@ class PointOTF(data.Dataset):
         img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
       else:
         img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
+    elif self.dataset_path is not None:
+      img_file = self.imgs[index]
+      img = np.load(img_file)
+      target_file = self.targets[index]
+      with open(target_file) as fp:
+        target = json.load(fp)
+      if self.have_noise:
+        [c, h,w] = img.shape
+        sigm = self.opt.noise_sigma * np.random.uniform(0,1)
+        img = img + sigm * np.random.rand(c, h, w)
     else:
       img = self.imgs[index]
+      target = self.targets[index]
       if self.have_noise:
           [c, h,w] = img.shape
           sigm = self.opt.noise_sigma * np.random.uniform(0,1)
           # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
           img = img + sigm * np.random.rand(c, h, w)
           # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
-      target = self.targets[index]   
+         
     obj_num = len(target)
     
     anns = target
-    for i in range(obj_num):        
-      anns[i][0] = self.labels.index(target[i][0]) 
+    for i in range(obj_num):
+      if self.force_merge_labels:
+        anns[i][0] = self.labels.index(0) 
+      else:
+        anns[i][0] = self.labels.index(target[i][0]) 
+
 
     num_objs = min(len(anns), self.max_objs)
 
