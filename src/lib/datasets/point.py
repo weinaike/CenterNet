@@ -14,7 +14,7 @@ from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
 from utils.image import gaussian_radius, draw_umich_gaussian, draw_msra_gaussian
 from utils.image import draw_dense_reg
-from utils.PointSample import gen_multi_point_sample, gen_merge_sample
+from utils.PointSample import gen_merge_sample
 import math
 
 def get_file_list(file, mode):
@@ -84,8 +84,6 @@ class PointOTF(data.Dataset):
         otf_list = np.multiply(self.otf_list, otf_noise)
         if self.opt.merge_bg:
           img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
-        else:
-          img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
         self.imgs.append(img)
         self.targets.append(target)
     elif self.dataset_path is not None:
@@ -131,11 +129,9 @@ class PointOTF(data.Dataset):
 
       if self.opt.merge_bg:
         img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
-      else:
-        img, target = gen_multi_point_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise)
     elif self.dataset_path is not None:
       img_file = self.imgs[index]
-      img = np.load(img_file)
+      img = np.load(img_file)[:,:-1,:-1]
       target_file = self.targets[index]
       with open(target_file) as fp:
         target = json.load(fp)

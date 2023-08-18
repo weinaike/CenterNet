@@ -207,7 +207,7 @@ def gen_point_psf_new(point_patch, otf_list):
     point_image = np.fft.fftshift(point_image,(1,2))
 
     # crop
-    crop_point_image = point_image[:, (centery-ph//2-1):(centery+ph//2), (centerx-pw//2-1):(centerx+pw//2)]
+    crop_point_image = point_image[:, (centery-ph//2):(centery+ph//2), (centerx-pw//2):(centerx+pw//2)]
 
 
     point_image_amp = np.abs(crop_point_image)
@@ -365,9 +365,10 @@ if __name__ == "__main__":
     parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     parser.add_argument('--true_bg', action='store_true', help='point object merge true backgroud')
     parser.add_argument('--nsr', default=0.1, type=float,help='')
+    parser.add_argument('--jobs', default=10, type=int,help='')
     args = parser.parse_args()
 
-    pool = mp.Pool(processes=20)
+    pool = mp.Pool(processes=args.jobs)
     otf_file = args.otf_file
     labels = args.labels
     point_len = args.point_len

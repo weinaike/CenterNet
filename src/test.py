@@ -223,7 +223,7 @@ def test(opt):
 
 
   file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
-  
+  file.writelines("commit:{}\n".format(opt.commit))
   # <4px, <4px, 3<px, <1px, 
   threshs = [0.01, 0.02, 0.14, 0.33, 0.47, 0.67]
   for th in threshs:

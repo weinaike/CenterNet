@@ -46,19 +46,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # basic experiment setting
     parser.add_argument('--mode', default="train", type=str, help='')
-    parser.add_argument('--path', default="PSF0815_6_IR_30", type=str, help='')
+    parser.add_argument('--path', default="PSF0815_6_IR_30_384", type=str, help='')
     args = parser.parse_args()
 
     path = args.path
     mode = args.mode
 
-    nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1",
-                "5x": "PSF0815_6_IR_30_nsr_0.2",
-                "50x": "PSF0815_6_IR_30_nsr_0.02"}
+    nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1_384",
+                "5x": "PSF0815_6_IR_30_nsr_0.2_384",
+                "50x": "PSF0815_6_IR_30_nsr_0.02_384"}
     
-    val_nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1_val",
-            "5x": "PSF0815_6_IR_30_nsr_0.2_val",
-            "50x": "PSF0815_6_IR_30_nsr_0.02_val"}
+    val_nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1_384_val",
+            "5x": "PSF0815_6_IR_30_nsr_0.2_384_val",
+            "50x": "PSF0815_6_IR_30_nsr_0.02_384_val"}
 
     if not os.path.exists(path):
         os.mkdir(path)
