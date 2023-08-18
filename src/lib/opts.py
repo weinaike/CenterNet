@@ -142,7 +142,7 @@ class opts(object):
     self.parser.add_argument('--point_len', default=111,type= int, help='path to otf_file')
     self.parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     self.parser.add_argument('--dataset_path', default=None,type= str, help='path to dataset')
-    self.parser.add_argument('--data_mode', default='all',type= str, help='all, 1point, 2point')
+    self.parser.add_argument('--data_mode', default='all',type= str, help='all, single, double, single_5x, double_5x, double_10x_10,...')
 
 
 
@@ -152,7 +152,7 @@ class opts(object):
     self.parser.add_argument('--have_noise', default=True, type=lambda x: (str(x).lower() == 'true'), help='have_noise') 
     self.parser.add_argument('--noise_sigma', default=0, type=float, help='noise sigma') 
     self.parser.add_argument('--labels', nargs='+',default=[0,3,6,9], type=int, help='a list of integers')
-    self.parser.add_argument('--sample_num', default=2048, type=int, help='num of sample in one train epoch')
+    self.parser.add_argument('--sample_num', default=10000, type=int, help='num of sample in one train epoch')
     self.parser.add_argument('--force_merge_labels',  action='store_true', help='force_merge_labels, label is 0, num is 1')
  
     # multi_pose
@@ -289,7 +289,7 @@ class opts(object):
       opt.chunk_sizes.append(slave_chunk_size)
     print('training chunk_sizes:', opt.chunk_sizes)
 
-    opt.time_str = time.strftime('%Y-%m-%d-%H-%M')
+    opt.time_str = time.strftime('%Y-%m-%d-%H-%M-%S')
     opt.root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
     opt.data_dir = os.path.join(opt.root_dir, 'data')
     opt.exp_dir = os.path.join(opt.root_dir, 'exp', opt.task)

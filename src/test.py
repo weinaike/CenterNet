@@ -148,7 +148,7 @@ def test(opt):
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
   detector = Detector(opt)
-  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=16, pin_memory=True)
+  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
   num_iters = len(dataset)
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
@@ -177,6 +177,7 @@ def test(opt):
     ret = detector.run(sample, img_info)
     
     if opt.debug > 0 and ind > 20:
+      print("break for index is more than 20")
       break
 
 
@@ -223,7 +224,7 @@ def test(opt):
 
 
   file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
-  file.writelines("commit:{}\n".format(opt.commit))
+  file.writelines("commit:{}, num of data is {}\n".format(opt.commit, ind))
   # <4px, <4px, 3<px, <1px, 
   threshs = [0.01, 0.02, 0.14, 0.33, 0.47, 0.67]
   for th in threshs:

@@ -22,11 +22,59 @@ def get_file_list(file, mode):
   targets = list()
   with open(file) as f:
     data = json.load(f)
-  if mode == "all":
+  
     for key, vals in data.items():
-      for val in vals:
-        imgs.append(val[:-4] + "npy")
-        targets.append(val)
+      items = key.split("_")
+      use = False
+      if mode == "all":
+        use = True
+
+      elif "single" == mode:
+        if "1" == items[0]:
+          use = True
+      elif "double" == mode:
+        if "2" == items[0]:
+          use = True
+      elif "single_5x" == mode:
+        if "1" == items[0] and "5x" == items[2]:
+          use = True
+      elif "single_10x" == mode:
+        if "1" == items[0] and "10x" == items[2]:
+          use = True
+      elif "single_50x" == mode:
+        if "1" == items[0] and "50x" == items[2]:
+          use = True
+      elif "double_5x" == mode:
+        if "2" == items[0] and "5x" == items[2]:
+          use = True
+      elif "double_10x" == mode:
+        if "2" == items[0] and "10x" == items[2]:
+          use = True
+      elif "double_50x" == mode:
+        if "2" == items[0] and "50x" == items[2]:
+          use = True
+
+      elif "double_50x_" in mode:
+        dist = mode.split("_")[2]
+        if "2" == items[0] and "50x" == items[2] and  dist == items[3]:
+          use = True
+
+      elif "double_10x_" in mode:
+        dist = mode.split("_")[2]
+        if "2" == items[0] and "10x" == items[2] and  dist == items[3]:
+          use = True
+
+      elif "double_5x_" in mode:
+        dist = mode.split("_")[2]
+        if "2" == items[0] and "5x" == items[2] and  dist == items[3]:
+          use = True
+
+      if use:
+        for val in vals:
+          imgs.append(val[:-4] + "npy")
+          targets.append(val)
+
+
   return imgs, targets
 
 class PointOTF(data.Dataset):
@@ -131,11 +179,11 @@ class PointOTF(data.Dataset):
         img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
     elif self.dataset_path is not None:
       img_file = self.imgs[index]
-      img = np.load(img_file)[:,:-1,:-1]
+      img = np.load(img_file)
       target_file = self.targets[index]
       with open(target_file) as fp:
         target = json.load(fp)
-      if self.have_noise:
+      if self.have_noise and np.random.uniform(0,1) > 0.3 and self.split == "train":
         [c, h,w] = img.shape
         sigm = self.opt.noise_sigma * np.random.uniform(0,1)
         img = img + sigm * np.random.rand(c, h, w)
