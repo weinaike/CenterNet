@@ -56,17 +56,33 @@ def get_file_list(file, mode):
 
       elif "double_50x_" in mode:
         dist = mode.split("_")[2]
-        if "2" == items[0] and "50x" == items[2] and  dist == items[3]:
+        if "2" == items[0] and "50x" == items[2] and (dist == items[3] or dist == items[1]):
           use = True
 
       elif "double_10x_" in mode:
         dist = mode.split("_")[2]
-        if "2" == items[0] and "10x" == items[2] and  dist == items[3]:
+        if "2" == items[0] and "10x" == items[2] and (dist == items[3] or dist == items[1]):
           use = True
 
       elif "double_5x_" in mode:
         dist = mode.split("_")[2]
-        if "2" == items[0] and "5x" == items[2] and  dist == items[3]:
+        if "2" == items[0] and "5x" == items[2] and (dist == items[3] or dist == items[1]):
+          use = True
+
+
+      elif "single_50x_" in mode:
+        dist = mode.split("_")[2]
+        if "1" == items[0] and "50x" == items[2] and dist == items[1]:
+          use = True
+
+      elif "single_10x_" in mode:
+        dist = mode.split("_")[2]
+        if "1" == items[0] and "10x" == items[2] and dist == items[1]:
+          use = True
+
+      elif "single_5x_" in mode:
+        dist = mode.split("_")[2]
+        if "1" == items[0] and "5x" == items[2] and dist == items[1]:
           use = True
 
       if use:

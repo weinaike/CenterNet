@@ -164,7 +164,7 @@ def test(opt):
     results.update({cls:list()})
 
   image_ids = list()
-
+  cost = 0
   for sample in data_loader:
     ind = ind + 1
     # img_id = dataset.images[ind]
@@ -174,7 +174,10 @@ def test(opt):
     img_path = sample["input"]
     img_info = sample["meta"]
     # print(img_info)
+    start = time.time()
     ret = detector.run(sample, img_info)
+    end = time.time()
+    cost += end-start
     
     if opt.debug > 0 and ind > 20:
       print("break for index is more than 20")
@@ -224,7 +227,7 @@ def test(opt):
 
 
   file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
-  file.writelines("commit:{}, num of data is {}\n".format(opt.commit, ind))
+  file.writelines("commit:{}, num of data is {}, cost time of once inference {}\n".format(opt.commit, ind, cost/ind))
   # <4px, <4px, 3<px, <1px, 
   threshs = [0.01, 0.02, 0.14, 0.33, 0.47, 0.67]
   for th in threshs:
