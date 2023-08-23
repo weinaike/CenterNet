@@ -199,7 +199,7 @@ class PointOTF(data.Dataset):
       target_file = self.targets[index]
       with open(target_file) as fp:
         target = json.load(fp)
-      if self.have_noise and np.random.uniform(0,1) > 0.5 and self.split == "train":
+      if self.have_noise and np.random.uniform(0,1) > 0.3 and self.split == "train":
         [c, h,w] = img.shape
         sigm = self.opt.noise_sigma * np.random.uniform(0,1)
         img = img + sigm * np.random.rand(c, h, w)
