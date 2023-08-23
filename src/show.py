@@ -45,6 +45,34 @@ def add_circle(img, anns, radius = 3):
         cv2.putText(mask, name+str(cls), (px + 5 , py - 5), font, 0.5 , c,  thickness=1, lineType=cv2.LINE_AA)
     return mask
 
+def add_rect(img, anns, gt = True):
+    mask = img.copy()
+    for ann in anns:
+        px = int(ann[1])
+        py = int(ann[2])
+        w = int(ann[3])
+        h = int(ann[4])
+        cls = int(ann[0])
+        conf = min(float(ann[5]),1.0)
+        c = gen_color(cls)
+        name = "C"
+        wl = w//2
+        wr = w - wl
+        hl = h//2
+        hr = h - hl
+        
+
+        pt1 = (px - wl , py - hl)
+        pt2 = (px + wr, py + hr)
+        if gt:
+            cv2.rectangle(mask, pt1, pt2, c, 1 )
+        else:
+            cv2.rectangle(mask, pt1, pt2, (0,0,0), 1)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(mask, name+str(cls) + ":{:.1f}".format(conf), (px + 5 , py - 5), font, 0.5 , (0,0,0),  thickness=1, lineType=cv2.LINE_AA)
+    return mask
+
+
 def gen_background(heatmap, anns, width = 111):
     h,w=heatmap.shape
     mask = np.zeros((h,w,3))
@@ -94,11 +122,11 @@ def show(opt):
     # Detector = detector_factory[opt.task]  
     detector = CtdetDetector(opt)    
     
-    idx = 9996
-    for idx in range(9960, 9980):
+    idx = 1
+    for idx in range(idx):
         print("\n-------------{}-------------".format(idx))
-        img = np.load("../data/PSF0620_04_4_40/sample_{:05d}.npy".format(idx))
-        with open("../data/PSF0620_04_4_40/sample_{:05d}.json".format(idx), "r") as fp:
+        img = np.load("debug/sample_{:05d}.npy".format(idx))
+        with open("debug/sample_{:05d}.json".format(idx), "r") as fp:
             gts = json.load(fp)
 
         ret = detector.run(img)
@@ -123,7 +151,7 @@ def show(opt):
         c,h,w=img.shape        
         # Heatmap
         heatmap = np.zeros((h,w))
-        backgroud = gen_background(heatmap, gts)
+        backgroud = gen_background(heatmap, gts,384)
 
         points_mask = add_gt_mask(heatmap, gts, radius=3)
 
@@ -136,7 +164,10 @@ def show(opt):
         obj = cv2.addWeighted(backgroud, 0.1, points_mask,0.9, 0)
 
         # image + heatmap
-        result = add_circle(img, predicts)
+        # 
+        result = add_rect(img, gts, True)
+        result = add_rect(result, predicts, False)
+        # result = add_circle(result, predicts)
 
         # plot
         plt.rcParams['figure.figsize'] = (12.0, 5) 
@@ -153,6 +184,7 @@ def show(opt):
         plt.savefig("../exp/ctdet/infrared_point_res34_384/debug/predict_{}.png".format(idx))
         # plt.show()
         plt.close()
+        cv2.imwrite("debug/result.bmp", cv2.cvtColor(result, cv2.COLOR_BGR2RGB) )
 
 if __name__ == '__main__':
     opt = opts().parse()

@@ -225,11 +225,12 @@ def test(opt):
   if not os.path.exists(opt.save_dir):
     os.mkdir(opt.save_dir)
 
-
+  if ind == 0:
+    return
   file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
   file.writelines("commit:{}, num of data is {}, cost time of once inference {}\n".format(opt.commit, ind, cost/ind))
-  # <4px, <4px, 3<px, <1px, 
-  threshs = [0.01, 0.02, 0.14, 0.33, 0.47, 0.67]
+  # <4px, <4px, 3<px, <2px,  <1px , <0.5px 
+  threshs = [0.01, 0.02, 0.087, 0.22, 0.47, 0.67]
   for th in threshs:
     aps = []
     print("thresh: {:.2f}".format(th))
@@ -241,17 +242,17 @@ def test(opt):
       file.writelines('AP for {} = {:.4f} \n'.format(cls, ap))
       with open(os.path.join(opt.save_dir, '{}_pr.pkl'.format(cls)), 'wb') as f:
         cPickle.dump({'rec': rec, 'prec': prec, 'ap': ap}, f)
+      if opt.debug > 0:
+        plt.figure()
+        plt.xlim([0.0,1.0])
+        plt.ylim([0.0,1.0])
+        plt.xlabel('recall')
+        plt.ylabel('precision')
+        plt.title('PR cruve')
+        plt.plot(rec, prec, '-r')
+        plt.savefig(os.path.join(opt.save_dir, 'thresh_{}_label_{}_PR.jpg'.format(th,cls)))
+        plt.close()
       
-      plt.figure()
-      plt.xlim([0.0,1.0])
-      plt.ylim([0.0,1.0])
-      plt.xlabel('recall')
-      plt.ylabel('precision')
-      plt.title('PR cruve')
-      plt.plot(rec, prec, '-r')
-      plt.savefig(os.path.join(opt.save_dir, 'thresh_{}_label_{}_PR.jpg'.format(th,cls)))
-      plt.close()
-    
     print(('Mean AP = {:.4f}\n'.format(np.mean(aps))))
     file.writelines(('Mean AP = {:.4f}\n'.format(np.mean(aps))))
   file.close()
