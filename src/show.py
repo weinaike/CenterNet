@@ -68,8 +68,9 @@ def add_rect(img, anns, gt = True):
             cv2.rectangle(mask, pt1, pt2, c, 1 )
         else:
             cv2.rectangle(mask, pt1, pt2, (0,0,0), 1)
+            cv2.imwrite("C_{}.bmp".format(cls+1), cv2.cvtColor(mask[py - 10: py + 10, px - 10 : px + 10,:], cv2.COLOR_BGR2RGB) )
             font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(mask, name+str(cls) + ":{:.1f}".format(conf), (px + 5 , py - 5), font, 0.5 , (0,0,0),  thickness=1, lineType=cv2.LINE_AA)
+            cv2.putText(mask, name+str(cls+1) + ":{:.2f}".format(conf), (px + 5 , py - 5), font, 1 , (0,0,0),  thickness=2, lineType=cv2.LINE_AA)
     return mask
 
 
@@ -122,8 +123,8 @@ def show(opt):
     # Detector = detector_factory[opt.task]  
     detector = CtdetDetector(opt)    
     
-    idx = 1
-    for idx in range(idx):
+    idx = 0
+    for idx in range(idx,7):
         print("\n-------------{}-------------".format(idx))
         img = np.load("debug/sample_{:05d}.npy".format(idx))
         with open("debug/sample_{:05d}.json".format(idx), "r") as fp:
@@ -184,7 +185,7 @@ def show(opt):
         plt.savefig("../exp/ctdet/infrared_point_res34_384/debug/predict_{}.png".format(idx))
         # plt.show()
         plt.close()
-        cv2.imwrite("debug/result.bmp", cv2.cvtColor(result, cv2.COLOR_BGR2RGB) )
+        cv2.imwrite("debug/result_{}.bmp".format(idx), cv2.cvtColor(result, cv2.COLOR_BGR2RGB) )
 
 if __name__ == '__main__':
     opt = opts().parse()

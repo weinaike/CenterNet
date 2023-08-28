@@ -193,8 +193,13 @@ def test(opt):
     # load anno
     gt_objs =  list()
     
+    expand = 0
     for j in range(obj_num):
       bbox = anns_gt[0][j][0:4].numpy()*opt.down_ratio
+      bbox[0]-=expand
+      bbox[1]-=expand
+      bbox[2]+=expand
+      bbox[3]+=expand
       cls_id =  int(anns_gt[0][j][5])
       name = cls_names[cls_id]
       gt_obj = {"bbox": bbox, "name":name}

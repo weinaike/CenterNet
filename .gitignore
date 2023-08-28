@@ -31,8 +31,9 @@ data/sup30
 data/sup60
 data/PSF0815_6_IR_30*
 data/PSF0815_6_IR_60*
-data/230816_1126
+data/2308*
 data/object
+data/background
 src/debug
 # PyInstaller
 #  Usually these files are written by a python script from a template

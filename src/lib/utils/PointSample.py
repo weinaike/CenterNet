@@ -9,6 +9,13 @@ import time
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 debug = False
+def gaussian2D(shape, sigma=1):
+    m, n = [(ss - 1.) / 2. for ss in shape]
+    y, x = np.ogrid[-m:m+1,-n:n+1]
+
+    h = np.exp(-(x * x + y * y) / (2 * sigma * sigma))
+    h[h < np.finfo(h.dtype).eps * h.max()] = 0
+    return h
 
 def closest_power_of_two(n):
     power = math.floor(math.log2(n)) + 1
@@ -21,14 +28,42 @@ def get_true_background(rect_len: int):
     sky_bg = None
     bg_label = None
 
-    bg_dict = {-2 : "../../../data/sunny_sky_backgrouod.npy",  
-            -3 : "../../../data/cloudy_sky_backgrouod.npy"}
+    bg_dict = { -2: "../../../data/background/sunny_sky_backgrouod.npy",  
+                -3: "../../../data/background/cloudy_sky_backgrouod.npy",
+                -4: '../../../data/background/230822_1532.npy', 
+                -5: '../../../data/background/230818_1001.npy', 
+                -6: '../../../data/background/230821_0915.npy', 
+                -7: '../../../data/background/230817_1647.npy', 
+                -8: '../../../data/background/230822_1831.npy', 
+                -9: '../../../data/background/230822_1149.npy', 
+                -10: '../../../data/background/230821_1615.npy', 
+                -11: '../../../data/background/230822_0935.npy', 
+                -12: '../../../data/background/230818_1503.npy', 
+                -13: '../../../data/background/230821_1408.npy', 
+                -14: '../../../data/background/230816_1422.npy', 
+                -15: '../../../data/background/230817_1418.npy', 
+                -16: '../../../data/background/230821_1432.npy', 
+                -17: '../../../data/background/230817_1201.npy', 
+                -18: '../../../data/background/230822_1039.npy', 
+                -19: '../../../data/background/230822_1403.npy', 
+                -20: '../../../data/background/230822_1714.npy', 
+                -21: '../../../data/background/230816_1614.npy', 
+                -22: '../../../data/background/230817_1020.npy', 
+                -23: '../../../data/background/230821_1136.npy', 
+                -24: '../../../data/background/230821_1025.npy', 
+                -25: '../../../data/background/230818_1356.npy',
+                -26: '../../../data/background/230818_1112.npy'
+            }
+    if debug:
+        bg_dict = {-2: "../../../data/background/one_sky_backgrouod.npy"}
+        # bg_dict = {-3: "../../../data/background/cloudy_sky_backgrouod.npy"}
+
     bg_label = random.choice(list(bg_dict.keys()))
     try:
         sky_bg = np.load(bg_dict[bg_label])
     except:
         items = bg_dict[bg_label].split("/")
-        sky_bg = np.load(os.path.join(".","../",items[-2],items[-1]))
+        sky_bg = np.load(os.path.join(".","../",items[-3], items[-2],items[-1]))
 
     # n:样本数， c:光谱通道数， h: 高， w:宽
     n, c, h, w = sky_bg.shape
@@ -117,6 +152,8 @@ def gen_point_patchs(wave_count, labels, point_type="ones", weight_mode="onehot"
     elif point_type == "ones_rand":
         point_patchs = np.random.rand(c,point_len,point_len) * 0.1 + 0.9
         point_patchs[:,point_len//2,point_len//2] = np.ones([c])
+    elif point_type == "gauss":
+        point_patchs = np.repeat(gaussian2D((point_len,point_len),1).reshape(1,point_len,point_len),c,axis=0)
     else:
         assert(0)
     point_patchs = point_patchs* weight.reshape(c,1,1)
@@ -256,7 +293,7 @@ def calc_prmse(rect_patchs):
 
 
 
-def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode = "gauss", have_noise = True , nsr = 0.1, true_bg = False):
+def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode = "gauss", have_noise = True , psnr = 20, true_bg = False):
     [wave_count,h,w ] = otf_list.shape
     #点目标， 其宽度obj_len, 要求奇数
     obj_num = 1
@@ -268,7 +305,7 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
     if true_bg:
         rect_patchs, bg_label = get_true_background(rect_len)        
     else:
-        rect_patchs, bg_label, _ = gen_point_patchs(wave_count,[0],point_type="ones_rand", weight_mode="all_one", have_noise=have_noise, point_len=rect_len)
+        rect_patchs, bg_label, _ = gen_point_patchs(wave_count,[0],"ones_rand", weight_mode="all_one", have_noise=have_noise, point_len=rect_len)
     
 
     if bg_label < 0:
@@ -276,7 +313,7 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         # print("prmse:",prmse)
         # print("max:",np.max(rect_patchs))
         # print("norm:",np.sqrt(np.linalg.norm(rect_patchs.ravel())))
-        rect_patchs = rect_patchs / prmse * nsr
+        rect_patchs = rect_patchs / prmse * 10**(-psnr/20)
     target = list()
    
 
@@ -310,7 +347,7 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         point_cy = (starty + endy) // 2
 
         # 标签, 中心坐标x, 中心坐标y, 宽， 高， 标签权重， 背景标签， 信噪比， 
-        target.append([label, point_cx, point_cy, obj_len, obj_len] + weight + [bg_label] + [nsr])
+        target.append([label, point_cx, point_cy, obj_len, obj_len] + weight + [bg_label] + [psnr])
     
     if debug:
         np.save("debug/rect_patchs.npy",rect_patchs)
@@ -332,14 +369,14 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
     # print(target)
     return sample, target
 
-def save_merge_point(id, otf_file, labels = [1,3,5], point_len = 5 , point_type = "ones", weight_mode = "gauss", nsr = 0.1, true_bg = False, save_path = None):
+def save_merge_point(id, otf_file, labels = [1,3,5], point_len = 5 , point_type = "ones", weight_mode = "gauss", psnr = 20, true_bg = False, save_path = None):
     
     path = otf_file[:-4]
     if save_path is not None :
         path = save_path
 
     otf_list = np.load(otf_file)  
-    sample, target = gen_merge_sample(otf_list,labels,point_len,point_type, weight_mode,True, nsr, true_bg)
+    sample, target = gen_merge_sample(otf_list,labels,point_len,point_type, weight_mode,True, psnr, true_bg)
 
     if not os.path.exists(path):
         os.mkdir(path)
@@ -364,8 +401,8 @@ if __name__ == "__main__":
     parser.add_argument('--labels', nargs='+',default=[1,3,5], type=int, help='a list of integers')
     parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     parser.add_argument('--true_bg', action='store_true', help='point object merge true backgroud')
-    parser.add_argument('--nsr', default=0.1, type=float,help='')
-    parser.add_argument('--jobs', default=10, type=int,help='')
+    parser.add_argument('--psnr', default=20, type=float,help='')
+    parser.add_argument('--jobs', default=20, type=int,help='')
     args = parser.parse_args()
 
     pool = mp.Pool(processes=args.jobs)
@@ -377,14 +414,14 @@ if __name__ == "__main__":
     merge_bg = args.merge_bg
     true_bg = args.true_bg
     weight_mode = args.weight_mode
-    nsr = args.nsr
+    psnr = args.psnr
     save_path = args.save_path
 
     num  = args.num
 
     for i in range(num):
-        # save_merge_point(i,otf_file,labels, point_len, point_type, weight_mode,  nsr, true_bg, save_path)
-        pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, weight_mode, nsr, true_bg, save_path))
+        # save_merge_point(i,otf_file,labels, point_len, point_type, weight_mode,  psnr, true_bg, save_path)
+        pool.apply_async(save_merge_point, (i,otf_file,labels, point_len, point_type, weight_mode, psnr, true_bg, save_path))
     print("----start----")
     pool.close()
     pool.join()

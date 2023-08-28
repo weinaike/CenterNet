@@ -5,10 +5,10 @@ import math
 import argparse 
 
 
-def parse_dict(nsr_dict:dict):
+def parse_dict(psnr_dict:dict):
     target_dict = dict()
-    for key in nsr_dict.keys():
-        path = nsr_dict[key]
+    for key in psnr_dict.keys():
+        path = psnr_dict[key]
         files = os.listdir(path)
 
         for file in files:
@@ -21,8 +21,8 @@ def parse_dict(nsr_dict:dict):
             
             point_num = len(targets)
             bg_label = targets[0][-4]
-            # nsr = targets[0][-3]
-            nsr = key
+            # psnr= targets[0][-3]
+            psnr = key
             distance = 0           
             if point_num == 2:
                 x1 = targets[0][1]
@@ -32,7 +32,7 @@ def parse_dict(nsr_dict:dict):
                 distance = int(math.sqrt((x1-x2)**2+(y1-y2)**2))
 
             distance_label = distance // 10 * 10
-            key_name = "{}_{}_{}_{}".format(point_num, bg_label, nsr, distance_label)
+            key_name = "{}_{}_{}_{}".format(point_num, bg_label, psnr, distance_label)
             file_train_path = "../data/"+file
             if key_name in target_dict.keys():
                 target_dict[key_name].append(file_train_path)
@@ -51,19 +51,19 @@ if __name__ == "__main__":
 
     path = args.path
     mode = args.mode
-
-    nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1_384",
-                "5x": "PSF0815_6_IR_30_nsr_0.2_384",
-                "50x": "PSF0815_6_IR_30_nsr_0.02_384"}
+    #### 5x : 10dB   10x:  20dB    50x: 40dB
+    psnr_dict = {"5x": "PSF0815_6_IR_30_psnr_10_384_init_bg",
+                "10x": "PSF0815_6_IR_30_psnr_20_384_init_bg",
+                "50x": "PSF0815_6_IR_30_psnr_40_384_init_bg"}
     
-    val_nsr_dict = {"10x": "PSF0815_6_IR_30_nsr_0.1_384_val",
-            "5x": "PSF0815_6_IR_30_nsr_0.2_384_val",
-            "50x": "PSF0815_6_IR_30_nsr_0.02_384_val"}
+    val_psnr_dict = {"5x": "PSF0815_6_IR_30_psnr_10_384_init_bg_val",
+            "10x": "PSF0815_6_IR_30_psnr_20_384_init_bg_val",
+            "50x": "PSF0815_6_IR_30_psnr_40_384_init_bg_val"}
 
     if not os.path.exists(path):
         os.mkdir(path)
     if mode == "train":
-        target_dict = parse_dict(nsr_dict)
+        target_dict = parse_dict(psnr_dict)
         print("----------train------------")
         print(target_dict.keys())
         #dict_keys(['2_-1_10x_60', '2_-1_10x_40', '2_-1_10x_30', '1_-1_10x_0', '2_-1_10x_70', '2_-1_10x_50', 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             json.dump(target_dict,f)
     
     if mode == "val":
-        target_dict = parse_dict(val_nsr_dict)
+        target_dict = parse_dict(val_psnr_dict)
         print("----------val------------")
         print(target_dict.keys())
         for key , val in target_dict.items():
