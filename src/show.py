@@ -123,11 +123,11 @@ def show(opt):
     # Detector = detector_factory[opt.task]  
     detector = CtdetDetector(opt)    
     
-    idx = 0
-    for idx in range(idx,7):
+    idx = 1
+    for idx in range(idx,3):
         print("\n-------------{}-------------".format(idx))
-        img = np.load("debug/sample_{:05d}.npy".format(idx))
-        with open("debug/sample_{:05d}.json".format(idx), "r") as fp:
+        img = np.load("sample_{:05d}.npy".format(idx))
+        with open("sample_{:05d}.json".format(idx), "r") as fp:
             gts = json.load(fp)
 
         ret = detector.run(img)

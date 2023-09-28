@@ -137,12 +137,12 @@ class opts(object):
                              help='not use the color augmenation '
                                   'from CornerNet')
 
-    self.parser.add_argument('--otf_file', default='../data/PSF0406_02_256by256.npy',type= str,
-                             help='path to otf_file')
+    self.parser.add_argument('--otf_file', default='../data/PSF0406_02_256by256.npy',type= str, help='path to otf_file')
     self.parser.add_argument('--point_len', default=111,type= int, help='path to otf_file')
     self.parser.add_argument('--merge_bg', action='store_true', help='point object merge with backgroud')
     self.parser.add_argument('--dataset_path', default=None,type= str, help='path to dataset')
     self.parser.add_argument('--data_mode', default='all',type= str, help='all, single, double, single_5x, double_5x, double_10x_10,...')
+    self.parser.add_argument('--psnr', nargs='+',default=[10,20,40], type=int, help='psnr list')
 
 
 
@@ -155,18 +155,6 @@ class opts(object):
     self.parser.add_argument('--sample_num', default=10000, type=int, help='num of sample in one train epoch')
     self.parser.add_argument('--force_merge_labels',  action='store_true', help='force_merge_labels, label is 0, num is 1')
  
-    # multi_pose
-    self.parser.add_argument('--aug_rot', type=float, default=0, help='probability of applying rotation augmentation.')
-    # ddd
-    self.parser.add_argument('--aug_ddd', type=float, default=0.5,
-                             help='probability of applying crop augmentation.')
-    self.parser.add_argument('--rect_mask', action='store_true',
-                             help='for ignored object, apply mask on the '
-                                  'rectangular region or just center point.')
-    self.parser.add_argument('--kitti_split', default='3dop',
-                             help='different validation split for kitti: '
-                                  '3dop | subcnn')
-
     # loss
     self.parser.add_argument('--mse_loss', action='store_true',
                              help='use mse loss or focal loss to train '
@@ -182,19 +170,6 @@ class opts(object):
                              help='loss weight for keypoint local offsets.')
     self.parser.add_argument('--wh_weight', type=float, default=0.1,
                              help='loss weight for bounding box size.')
-    # multi_pose
-    self.parser.add_argument('--hp_weight', type=float, default=1,
-                             help='loss weight for human pose offset.')
-    self.parser.add_argument('--hm_hp_weight', type=float, default=1,
-                             help='loss weight for human keypoint heatmap.')
-    # ddd
-    self.parser.add_argument('--dep_weight', type=float, default=1,
-                             help='loss weight for depth.')
-    self.parser.add_argument('--dim_weight', type=float, default=1,
-                             help='loss weight for 3d bounding box size.')
-    self.parser.add_argument('--rot_weight', type=float, default=1,
-                             help='loss weight for orientation.')
-    self.parser.add_argument('--peak_thresh', type=float, default=0.2)
     
     # task
     # ctdet
@@ -207,16 +182,7 @@ class opts(object):
                              help='category specific bounding box size.')
     self.parser.add_argument('--not_reg_offset', action='store_true',
                              help='not regress local offset.')
-    # exdet
-    self.parser.add_argument('--agnostic_ex', action='store_true',
-                             help='use category agnostic extreme points.')
-    self.parser.add_argument('--scores_thresh', type=float, default=0.1,
-                             help='threshold for extreme point heatmap.')
-    self.parser.add_argument('--center_thresh', type=float, default=0.1,
-                             help='threshold for centermap.')
-    self.parser.add_argument('--aggr_weight', type=float, default=0.0,
-                             help='edge aggregation weight.')
-    # multi_pose
+      # multi_pose
     self.parser.add_argument('--dense_hp', action='store_true',
                              help='apply weighted pose regression near center '
                                   'or just apply regression on center point.')

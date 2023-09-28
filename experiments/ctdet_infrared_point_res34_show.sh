@@ -2,7 +2,7 @@ cd src
 # show
 python show.py ctdet --exp_id infrared_point_res50_384 --arch res_50  \
                     --debug 0  --vis_thresh 0.5  --labels 0 1 2 3 4 5 \
-                    --load_model ../exp/ctdet/infrared_point_res50_384/logs_2023-08-25-03-54-42/model_best.pth
+                    --load_model ../exp/ctdet/infrared_point_res50_384/logs_2023-08-31-17-14-53/model_best.pth
 
 
 

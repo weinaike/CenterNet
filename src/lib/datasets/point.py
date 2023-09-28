@@ -7,6 +7,8 @@ import numpy as np
 import torch
 import json
 import os
+import glob
+import random
 
 import torch.utils.data as data
 
@@ -136,6 +138,8 @@ class PointOTF(data.Dataset):
     self.imgs = list()
     self.targets = list()
 
+
+
     if False:
       self.otf_list = np.load(self.otf_file)
       [c,h,w] = self.otf_list.shape
@@ -151,15 +155,56 @@ class PointOTF(data.Dataset):
         self.imgs.append(img)
         self.targets.append(target)
     elif self.dataset_path is not None:
-      if self.split == "train":
-        file = os.path.join(self.dataset_path, "train.json")
-        self.imgs, self.targets = get_file_list(file, self.data_mode)
+      if "json" in self.dataset_path:
+        self.bgs = list()
+        self.bgs_prmse = list()
+        self.psnrs = self.opt.psnr
+
+        with open(self.dataset_path) as f:
+          path_json = json.load(f)
+        if self.split == "train":
+          path = path_json["train"]
+          bg_path = path_json["background"]
+        else:
+          path = path_json["val"]       
+          bg_path = path_json["background_val"]
+        files = glob.glob(path + "/*.npy")
+        for file in files:
+          json_file = os.path.join(path,file[:-4]+".json")
+          with open(json_file) as f:
+            targets = json.load(f)
+            objs_num = len(targets)
+          use = False
+          if self.data_mode == "single" and objs_num == 1:
+            use = True
+          if self.data_mode == "all":
+            use = True
+          if self.data_mode == "double" and objs_num ==2:
+            use = True
+          if use:
+            self.imgs.append(os.path.join(path,file))
+            self.targets.append(json_file)
+        self.num_samples = len(self.imgs)
+        
+        
+        bg_files = glob.glob(bg_path + "/*.npy")
+        for file in bg_files:
+          self.bgs.append(os.path.join(bg_path,file))
+          self.bgs_prmse.append(os.path.join(path,file[:-4]+".json"))
+        
+
+
+
       else:
-        file = os.path.join(self.dataset_path, "val.json")
-        self.imgs, self.targets = get_file_list(file, self.data_mode)
-      self.num_samples = len(self.imgs)
-      if self.opt.sample_num <  self.num_samples:
-        self.num_samples = self.opt.sample_num
+        if self.split == "train":
+          file = os.path.join(self.dataset_path, "train.json")
+          self.imgs, self.targets = get_file_list(file, self.data_mode)
+        else:
+          file = os.path.join(self.dataset_path, "val.json")
+          self.imgs, self.targets = get_file_list(file, self.data_mode)
+        self.num_samples = len(self.imgs)
+        if self.opt.sample_num <  self.num_samples:
+          self.num_samples = self.opt.sample_num
     else:
       path = self.otf_file[:-4]
       all_sample = len(os.listdir(path)) // 2
@@ -194,15 +239,47 @@ class PointOTF(data.Dataset):
       if self.opt.merge_bg:
         img, target = gen_merge_sample(otf_list, self.labels, self.point_len, self.point_type, self.weight_mode, self.have_noise, self.opt.noise_sigma)
     elif self.dataset_path is not None:
-      img_file = self.imgs[index]
-      img = np.load(img_file)
-      target_file = self.targets[index]
-      with open(target_file) as fp:
-        target = json.load(fp)
-      if self.have_noise and np.random.uniform(0,1) > 0.3 and self.split == "train":
-        [c, h,w] = img.shape
-        sigm = self.opt.noise_sigma * np.random.uniform(0,1)
-        img = img + sigm * np.random.rand(c, h, w)
+
+      if "json" in self.dataset_path:
+        img_file = self.imgs[index]
+        img = np.load(img_file)
+        [imgc,imgh,imgw] = img.shape 
+        target_file = self.targets[index]
+        with open(target_file) as fp:
+          target = json.load(fp)
+
+        idx = random.randint(0,len(self.bgs)-1)
+        bg_file = self.bgs[idx]
+        bg = np.load(bg_file)
+        with open(self.bgs_prmse[idx]) as f:
+          prmse = json.load(f)
+        [bgh,bgw] = bg.shape
+
+
+        h_s = random.choice(range(bgh - imgh))
+        h_e = h_s + imgh
+        w_s = random.choice(range(bgw - imgw))
+        w_e = w_s + imgw
+        
+        crop_bg = bg[h_s:h_e, w_s:w_e]
+
+        crop_bg = crop_bg.reshape(1,imgh,imgw)
+        psnr = random.choice(self.psnrs)
+        if self.split == "train":
+          psnr = random.randint(self.psnrs[0],self.psnrs[-1])
+        img += crop_bg/prmse * 10**(-psnr/20) 
+        img /= np.max(img)
+
+      else:
+        img_file = self.imgs[index]
+        img = np.load(img_file)
+        target_file = self.targets[index]
+        with open(target_file) as fp:
+          target = json.load(fp)
+        if self.have_noise and np.random.uniform(0,1) > 0.3 and self.split == "train":
+          [c, h,w] = img.shape
+          sigm = self.opt.noise_sigma * np.random.uniform(0,1)
+          img = img + sigm * np.random.rand(c, h, w)
     else:
       img = self.imgs[index]
       target = self.targets[index]
