@@ -1,0 +1,5 @@
+{"train":"/home/wnk/code/CenterNet/data/psf_120_230801_180614_init_nobg_seed",
+"val":"/home/wnk/code/CenterNet/data/psf_120_230801_180614_init_nobg_seed_val",
+"background":"/home/wnk/code/CenterNet/data/psf_120_230801_180614_init_background",
+"background_val":"/home/wnk/code/CenterNet/data/psf_120_230801_180614_init_background_val"
+}

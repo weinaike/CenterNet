@@ -8,6 +8,7 @@ import os
 import json
 import cv2
 import numpy as np
+import random
 import time
 from progress.bar import Bar
 import torch
@@ -142,14 +143,23 @@ def test(opt):
   Dataset = dataset_factory[opt.dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
   print(opt)
+  np.random.seed(opt.seed)
+  random.seed(opt.seed)
+  torch.manual_seed(opt.seed)
+  torch.cuda.manual_seed(opt.seed)
+  torch.cuda.manual_seed_all(opt.seed)  # if you are using multi-GPU.
+
+
   # Logger(opt)
   Detector = detector_factory[opt.task]
   
   split = 'val' if not opt.trainval else 'test'
   dataset = Dataset(opt, split)
   detector = Detector(opt)
-  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
+  data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
 
+  # torch.backends.cudnn.benchmark = False
+  # torch.backends.cudnn.deterministic = True
   num_iters = len(dataset)
   bar = Bar('{}'.format(opt.exp_id), max=num_iters)
   time_stats = ['tot', 'load', 'pre', 'net', 'dec', 'post', 'merge']
@@ -165,6 +175,7 @@ def test(opt):
 
   image_ids = list()
   cost = 0
+
   for sample in data_loader:
     ind = ind + 1
     # img_id = dataset.images[ind]

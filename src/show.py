@@ -187,6 +187,73 @@ def show(opt):
         plt.close()
         cv2.imwrite("debug/result_{}.bmp".format(idx), cv2.cvtColor(result, cv2.COLOR_BGR2RGB) )
 
+def show_merge():
+    import json
+    import glob
+    import matplotlib.pyplot as plt
+    data = "../data/train_val_120_seed.json"
+
+    with open(data) as f:
+        path_json = json.load(f)
+
+    path = path_json["val"]
+    bg_path = path_json["background_val"]
+    print(path)
+    imgs = list()
+    targets = list()
+
+
+    files = glob.glob(path + "/*.npy")
+    print(len(files))
+    for file in files:
+        json_file = os.path.join(path,file[:-4]+".json")
+        with open(json_file) as f:
+            targets = json.load(f)
+        objs_num = len(targets)
+        if objs_num == 1:
+            imgs.append(os.path.join(path,file))
+            targets.append(json_file)
+    num_samples = len(imgs)
+
+    img_index = 1
+    bg_idx = 10
+
+    img_file = imgs[img_index]
+    img = np.load(img_file)
+    [imgc,imgh,imgw] = img.shape 
+
+
+
+    bgs = list()
+    bgs_prmse = list()
+
+    bg_files = glob.glob(bg_path + "/*.npy")
+    for file in bg_files:
+        bgs.append(os.path.join(bg_path,file))
+        bgs_prmse.append(os.path.join(path,file[:-4]+".json"))
+
+
+    bg_file = bgs[bg_idx]
+    bg = np.load(bg_file)
+    with open(bgs_prmse[bg_idx]) as f:
+        prmse = json.load(f)
+    [bgh,bgw] = bg.shape
+
+
+    h_s = (bgh - imgh)//2
+    w_s = (bgw - imgw)//2
+    h_e = h_s + imgh
+    w_e = w_s + imgw
+    crop_bg = bg[h_s:h_e, w_s:w_e]
+    crop_bg = crop_bg.reshape(1,imgh,imgw)
+    psnr = 40
+    img += crop_bg/prmse * 10**(-psnr/20) 
+    img /= np.max(img)
+
+    plt.imshow(img[0,:,:],"gray")
+    plt.show()
+
+
 if __name__ == '__main__':
     opt = opts().parse()
     show(opt)

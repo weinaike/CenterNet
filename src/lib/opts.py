@@ -34,6 +34,8 @@ class opts(object):
                                   'set load_model to model_last.pth '
                                   'in the exp dir if load_model is empty.') 
     self.parser.add_argument('--commit', default='', help='commit infomation')
+    self.parser.add_argument('--use_sgd', action='store_true', help='use_sgd')   
+    self.parser.add_argument('--use_swats', action='store_true', help='use_swats')         
 
     # system
     self.parser.add_argument('--gpus', default='0', 

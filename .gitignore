@@ -34,6 +34,8 @@ data/PSF0815_6_IR_60*
 data/2308*
 data/object
 data/background
+data/psf_*
+data/merge
 src/debug
 # PyInstaller
 #  Usually these files are written by a python script from a template

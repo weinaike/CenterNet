@@ -192,7 +192,8 @@ class PointOTF(data.Dataset):
           self.bgs.append(os.path.join(bg_path,file))
           self.bgs_prmse.append(os.path.join(path,file[:-4]+".json"))
         
-
+        otf_3d = np.load(self.otf_file)
+        self.otf_list = np.pad(otf_3d, ((0,0),(64,64),(64,64)),mode='constant', constant_values=0)
 
 
       else:
@@ -230,6 +231,7 @@ class PointOTF(data.Dataset):
     return self.num_samples
 
   def __getitem__(self, index):
+
     img = None
     target = None
     if False:
@@ -255,37 +257,43 @@ class PointOTF(data.Dataset):
           prmse = json.load(f)
         [bgh,bgw] = bg.shape
 
-
-        h_s = random.choice(range(bgh - imgh))
-        h_e = h_s + imgh
-        w_s = random.choice(range(bgw - imgw))
-        w_e = w_s + imgw
-        
-        crop_bg = bg[h_s:h_e, w_s:w_e]
-
-        crop_bg = crop_bg.reshape(1,imgh,imgw)
+ 
+        h_s = (bgh - imgh)//2
+        w_s = (bgw - imgw)//2
         psnr = random.choice(self.psnrs)
         if self.split == "train":
           psnr = random.randint(self.psnrs[0],self.psnrs[-1])
+          h_s = random.choice(range(bgh - imgh))        
+          w_s = random.choice(range(bgw - imgw))      
+        h_e = h_s + imgh
+        w_e = w_s + imgw
+        crop_bg = bg[h_s:h_e, w_s:w_e]
+        crop_bg = crop_bg.reshape(1,imgh,imgw)
+
         img += crop_bg/prmse * 10**(-psnr/20) 
         img /= np.max(img)
-
+        if self.have_noise and random.uniform(0,1) > 0.3 and self.split == "train":
+          [c, h,w] = img.shape
+          sigm = self.opt.noise_sigma * random.uniform(0,1)
+          img = img + sigm * np.random.rand(c, h, w)
+        
+        img = np.concatenate((img, img, img), axis=0)
       else:
         img_file = self.imgs[index]
         img = np.load(img_file)
         target_file = self.targets[index]
         with open(target_file) as fp:
           target = json.load(fp)
-        if self.have_noise and np.random.uniform(0,1) > 0.3 and self.split == "train":
+        if self.have_noise and random.uniform(0,1) > 0.3 and self.split == "train":
           [c, h,w] = img.shape
-          sigm = self.opt.noise_sigma * np.random.uniform(0,1)
+          sigm = self.opt.noise_sigma * random.uniform(0,1)
           img = img + sigm * np.random.rand(c, h, w)
     else:
       img = self.imgs[index]
       target = self.targets[index]
       if self.have_noise:
           [c, h,w] = img.shape
-          sigm = self.opt.noise_sigma * np.random.uniform(0,1)
+          sigm = self.opt.noise_sigma * random.uniform(0,1)
           # sample = np.multiply(sample, 1 + noise_sig * (np.random.rand(h,w) - 0.5)) 
           img = img + sigm * np.random.rand(c, h, w)
           # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 

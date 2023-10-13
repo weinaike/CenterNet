@@ -58,7 +58,7 @@ class BaseDetector(object):
     # images = inp_image.transpose(2, 0, 1).reshape(1, 3, inp_height, inp_width)
     # if self.opt.flip_test:
     #   images = np.concatenate((images, images[:, :, :, ::-1]), axis=0)
-    images = torch.from_numpy(image).float().view(1,1,height,width)
+    images = torch.from_numpy(image).float().view(1,3,height,width)
     meta = {'c': c, 's': s, 
             'out_height': inp_height // self.opt.down_ratio, 
             'out_width': inp_width // self.opt.down_ratio}

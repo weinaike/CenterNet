@@ -92,6 +92,7 @@ def gen_weight_and_label(wave_count, labels, weight_mode="onehot", have_noise = 
     weight =  np.zeros(wave_count)
 
     if weight_mode == "onehot":
+        weight += 0.5 
         weight[label] = 1.0
     elif weight_mode == "twohot":
         if label >= wave_count - 1:
@@ -300,10 +301,10 @@ if __name__ == "__main__":
     save_path = args.save_path
 
 
-    train_num  = int(args.num * 0.9)
+    train_num  = int(args.num * 0.8)
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    val_num  = int(args.num * 0.1)
+    val_num  = int(args.num * 0.2)
     val_path = save_path+"_val"
     if not os.path.exists(val_path):
         os.mkdir(val_path)
@@ -322,10 +323,14 @@ if __name__ == "__main__":
     pad_w_2 = expand_w - w - pad_w_1
     otf_3d = np.pad(otf_list, ((0,0),(pad_h_1, pad_h_2),(pad_w_1,pad_w_2)),mode='constant', constant_values=0)
     otf_fft = np.fft.fft2(np.fft.ifftshift(otf_3d,(1,2)))
+    
+    ####每次随机生成相同的数据
+    random.seed(317)
+    np.random.seed(317)
 
     for i in range(train_num):
-        # save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, save_path)
-        pool.apply_async(save_merge_point, (i,otf_fft,labels, point_len, point_type, weight_mode, save_path))
+        save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, save_path)
+        #pool.apply_async(save_merge_point, (i,otf_fft,labels, point_len, point_type, weight_mode, save_path))
     print("----start gen train data----")
     pool.close()
     pool.join()
@@ -333,8 +338,8 @@ if __name__ == "__main__":
 
     pool = mp.Pool(processes=args.jobs)
     for i in range(val_num):
-        # save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, save_path)
-        pool.apply_async(save_merge_point, (i,otf_fft,labels, point_len, point_type, weight_mode, val_path))
+        save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, save_path)
+        #pool.apply_async(save_merge_point, (i,otf_fft,labels, point_len, point_type, weight_mode, val_path))
     print("----start gen val date----")
     pool.close()
     pool.join()

@@ -8,17 +8,22 @@ import os
 
 import torch
 import torch.utils.data
+from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from opts import opts
 from models.model import create_model, load_model, save_model
 from models.data_parallel import DataParallel
 from logger import Logger
 from datasets.dataset_factory import dataset_factory
 from trains.train_factory import train_factory
-
+import numpy 
+import random
+import swats
 
 def main(opt):
   logger = Logger(opt)
   torch.manual_seed(opt.seed)
+  numpy.random.seed(opt.seed)
+  random.seed(opt.seed)
   torch.backends.cudnn.benchmark = not opt.not_cuda_benchmark and not opt.test
   Dataset = dataset_factory[opt.dataset]
   opt = opts().update_dataset_info_and_set_heads(opt, Dataset)
@@ -29,7 +34,16 @@ def main(opt):
   
   print('Creating model...')
   model = create_model(opt.arch, opt.heads, opt.head_conv)
-  optimizer = torch.optim.Adam(model.parameters(), opt.lr)
+  
+  # use_sgd = False
+  if opt.use_sgd:
+    optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9)
+  elif opt.use_swats:
+    optimizer = swats.SWATS(model.parameters(), opt.lr, verbose=True)
+  else:
+    optimizer = torch.optim.Adam(model.parameters(), opt.lr)
+  
+  
   start_epoch = 0
   if opt.load_model != '':
     model, optimizer, start_epoch = load_model(
@@ -45,7 +59,7 @@ def main(opt):
       batch_size=opt.batch_size, 
       shuffle=True,
       num_workers=opt.num_workers,
-      prefetch_factor = 4, 
+      prefetch_factor = 2, 
       pin_memory=True,
       drop_last=True
   )
@@ -60,21 +74,36 @@ def main(opt):
   )
   print("val:",len(val_loader))
   if opt.test:
+    random.seed(opt.seed)
+    numpy.random.seed(opt.seed)
     _, preds = trainer.val(0, val_loader)
     val_loader.dataset.run_eval(preds, opt.save_dir)
     return
-
-
+  if opt.use_sgd:
+    scheduler = MultiStepLR(optimizer, milestones=opt.lr_step, gamma=0.1)
   print('Starting training...')
   best = 1e10
   for epoch in range(start_epoch + 1, opt.num_epochs + 1):
+    random.seed()
+    numpy.random.seed()
+    torch.seed()
+
     mark = epoch if opt.save_all else 'last'
     log_dict_train, _ = trainer.train(epoch, train_loader)
+
     logger.write('epoch: {} |'.format(epoch))
+
+    for param_group in optimizer.param_groups:      
+      logger.scalar_summary('train_lr', param_group['lr'] , epoch)
+      logger.write('{} {:8f} | '.format('train_lr', param_group['lr'] ))
+
     for k, v in log_dict_train.items():
       logger.scalar_summary('train_{}'.format(k), v, epoch)
       logger.write('{} {:8f} | '.format(k, v))
     if opt.val_intervals > 0 and epoch % opt.val_intervals == 0:
+      numpy.random.seed(opt.seed)
+      random.seed(opt.seed)
+      torch.manual_seed(opt.seed)
       save_model(os.path.join(opt.log_dir, 'model_{}.pth'.format(mark)), 
                  epoch, model, optimizer)
       with torch.no_grad():
@@ -90,7 +119,17 @@ def main(opt):
       save_model(os.path.join(opt.log_dir, 'model_last.pth'), 
                  epoch, model, optimizer)
     logger.write('\n')
-    if epoch in opt.lr_step:
+
+    if epoch % 10 == 0:
+      save_model(os.path.join(opt.log_dir, 'model_epoch_{}.pth'.format(epoch)), epoch, model)
+
+    if opt.use_sgd:
+      scheduler.step()
+    elif opt.use_swats:
+      if epoch in opt.lr_step:
+        save_model(os.path.join(opt.log_dir, 'model_{}.pth'.format(epoch)), 
+                 epoch, model, optimizer)
+    elif epoch in opt.lr_step:
       save_model(os.path.join(opt.log_dir, 'model_{}.pth'.format(epoch)), 
                  epoch, model, optimizer)
       lr = opt.lr * (0.1 ** (opt.lr_step.index(epoch) + 1))

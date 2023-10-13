@@ -84,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument('--jobs', default=20, type=int,help='')
     args = parser.parse_args()
 
-    pool = mp.Pool(processes=args.jobs)
+    # pool = mp.Pool(processes=args.jobs)
     otf_file = args.otf_file
     save_path = args.save_path
 
@@ -103,34 +103,41 @@ if __name__ == "__main__":
     otf_3d = np.pad(otf_list, ((0,0),(pad_h_1, pad_h_2),(pad_w_1,pad_w_2)),mode='constant', constant_values=0)
     otf_fft = np.fft.fft2(np.fft.ifftshift(otf_3d,(1,2)))
 
-    # bg_dict = { -4: '../../../data/background/230822_1532.npy', 
-    #             -5: '../../../data/background/230818_1001.npy', 
-    #             -6: '../../../data/background/230821_0915.npy', 
-    #             -7: '../../../data/background/230817_1647.npy', 
-    #             -8: '../../../data/background/230822_1831.npy', 
-    #             -9: '../../../data/background/230822_1149.npy', 
-    #             -10: '../../../data/background/230821_1615.npy', 
-    #             -11: '../../../data/background/230822_0935.npy', 
-    #             -12: '../../../data/background/230818_1503.npy', 
-    #             -13: '../../../data/background/230821_1408.npy', 
-    #             -14: '../../../data/background/230816_1422.npy', 
-    #             -15: '../../../data/background/230817_1418.npy', 
-    #             -16: '../../../data/background/230821_1432.npy', 
-    #             -17: '../../../data/background/230817_1201.npy', 
-    #             -18: '../../../data/background/230822_1039.npy', 
-    #             -19: '../../../data/background/230822_1403.npy', 
-    #             -20: '../../../data/background/230822_1714.npy', 
-    #             -21: '../../../data/background/230816_1614.npy', 
-    #             -22: '../../../data/background/230817_1020.npy', 
-    #             -23: '../../../data/background/230821_1136.npy', 
-    #             -24: '../../../data/background/230821_1025.npy', 
-    #             -25: '../../../data/background/230818_1356.npy',
-    #             -26: '../../../data/background/230818_1112.npy'
-    #         }
-    bg_dict = { -2: "../../../data/background/sunny_sky_backgrouod.npy",  
+    bg_dict = { -4: '../../../data/background/230822_1532.npy', 
+                -5: '../../../data/background/230818_1001.npy', 
+                -6: '../../../data/background/230821_0915.npy', 
+                -7: '../../../data/background/230817_1647.npy', 
+                -8: '../../../data/background/230822_1831.npy', 
+                -9: '../../../data/background/230822_1149.npy', 
+                -10: '../../../data/background/230821_1615.npy', 
+                -11: '../../../data/background/230822_0935.npy', 
+                -12: '../../../data/background/230818_1503.npy', 
+                -13: '../../../data/background/230821_1408.npy', 
+                -14: '../../../data/background/230816_1422.npy', 
+                -15: '../../../data/background/230817_1418.npy', 
+                -16: '../../../data/background/230821_1432.npy', 
+                -17: '../../../data/background/230817_1201.npy', 
+                -18: '../../../data/background/230822_1039.npy', 
+                -19: '../../../data/background/230822_1403.npy', 
+                -20: '../../../data/background/230822_1714.npy', 
+                -21: '../../../data/background/230816_1614.npy', 
+                -22: '../../../data/background/230817_1020.npy', 
+                -23: '../../../data/background/230821_1136.npy', 
+                -24: '../../../data/background/230821_1025.npy', 
+                -25: '../../../data/background/230818_1356.npy',
+                -26: '../../../data/background/230818_1112.npy'
+            }
+    bg_dict_val = { -2: "../../../data/background/sunny_sky_backgrouod.npy",  
                 -3: "../../../data/background/cloudy_sky_backgrouod.npy",
             }
-    for key, val in bg_dict.items():
+    
+    temp = dict()
+    if "val" in save_path:
+        temp = bg_dict_val
+    else:
+        temp = bg_dict
+
+    for key, val in temp.items():
         sky_bgs = np.load(val)
         num, c, h, w = sky_bgs.shape
         
