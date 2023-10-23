@@ -6,6 +6,7 @@ import numpy as np
 import json
 import math
 import time
+import scipy.io as sciio
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 debug = False
@@ -94,6 +95,7 @@ def gen_weight_and_label(wave_count, labels, weight_mode="onehot", have_noise = 
     if weight_mode == "onehot":
         weight += 0.5 
         weight[label] = 1.0
+        return weight, label
     elif weight_mode == "twohot":
         if label >= wave_count - 1:
             assert(0)
@@ -208,6 +210,7 @@ def gen_centers(rect_len:int, edge:int, obj_num:int):
             startx = random.randint(edge, rect_len - edge) 
             starty = random.randint(edge, rect_len - edge) 
             pts.append([startx, starty])
+    # pts=[[192,192]]
     return pts
 
 
@@ -217,7 +220,8 @@ def gen_merge_sample(otf_fft, labels, obj_len, point_type="ones", weight_mode = 
     obj_num = 1
     if random.random() > 0.2:
         obj_num = 2
-    
+    # if debug:
+    #     obj_num = 1
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 384 
     edge = 128   
@@ -274,7 +278,9 @@ def save_merge_point(id, otf_fft, labels = [1,3,5], point_len = 5 , point_type =
     np.save(os.path.join(path,"sample_{:05d}.npy".format(id)),sample)
     with open(os.path.join(path,"sample_{:05d}.json".format(id)), "w") as fp:
         json.dump(target, fp)
-
+    # mat = dict()
+    # mat["compress_pt"] = sample
+    # sciio.savemat(os.path.join(path,"sample_{:05d}.mat".format(id)), mat)
 
 if __name__ == "__main__":
     import multiprocessing as mp

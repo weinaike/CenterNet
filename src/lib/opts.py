@@ -145,6 +145,8 @@ class opts(object):
     self.parser.add_argument('--dataset_path', default=None,type= str, help='path to dataset')
     self.parser.add_argument('--data_mode', default='all',type= str, help='all, single, double, single_5x, double_5x, double_10x_10,...')
     self.parser.add_argument('--psnr', nargs='+',default=[10,20,40], type=int, help='psnr list')
+    self.parser.add_argument('--bg', default='all', type=str, help='sunny, cloudy')
+    self.parser.add_argument('--dist', default=0, type=int, help='dist of two point')
 
 
 
@@ -267,7 +269,8 @@ class opts(object):
     opt.debug_dir = os.path.join(opt.expid_dir, 'debug')
     print('The output will be saved to ', opt.save_dir)
 
-    
+    if not os.path.exists(opt.expid_dir):
+      os.makedirs(opt.expid_dir)
     if opt.resume and opt.load_model == '':
       model_path = opt.save_dir[:-4] if opt.save_dir.endswith('TEST') \
                   else opt.save_dir

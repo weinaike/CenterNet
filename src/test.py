@@ -184,7 +184,8 @@ def test(opt):
     # print(sample)
     img_path = sample["input"]
     img_info = sample["meta"]
-    # print(img_info)
+    # if ind == 100:
+    #     print(img_info)
     start = time.time()
     ret = detector.run(sample, img_info)
     end = time.time()
@@ -246,7 +247,7 @@ def test(opt):
   file = open(os.path.join(opt.save_dir, 'map.txt'), 'w')
   file.writelines("commit:{}, num of data is {}, cost time of once inference {}\n".format(opt.commit, ind, cost/ind))
   # <4px, <4px, 3<px, <2px,  <1px , <0.5px 
-  threshs = [0.01, 0.02, 0.087, 0.22, 0.47, 0.67]
+  threshs = [0.01, 0.02, 0.087, 0.1 ,0.22, 0.3, 0.35, 0.4, 0.47, 0.5, 0.6, 0.67, 0.8, 0.9]
   for th in threshs:
     aps = []
     print("thresh: {:.2f}".format(th))

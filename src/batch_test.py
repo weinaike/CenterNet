@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # basic experiment setting
-    parser.add_argument('-m','--model_path', default="../exp/ctdet/infrared_point_res50_384/logs_2023-08-27-13-48-49/model_best.pth", type=str, help='')
+    parser.add_argument('-m','--model_path', default="../exp/ctdet/seed_res50_all/logs_2023-10-14-18-02-04/model_best.pth", type=str, help='')
     parser.add_argument('-p','--dataset_path', default="../data/PSF0815_6_IR_30_384_PSNR_bg/", type=str, help='')
     parser.add_argument('-g','--gpu', default=0, type=int, help='')
     args = parser.parse_args()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
 
     for mode, commit in data_commit_dict.items():
-        cmd = "python test.py ctdet --exp_id infrared_point_res50_384 --arch res_50 --dataset point --mse_loss --not_prefetch_test \
+        cmd = "python test.py ctdet --exp_id seed_res50_all --arch res_50 --dataset point --mse_loss --not_prefetch_test \
                     --debug 0  --vis_thresh 0.5  --labels 0 1 2 3 4 5  --have_noise False --point_len 5 --hm_gauss 3  \
                     --gpus {} --dataset_path '{}' --data_mode {} --commit '{} for PSF0815_6_IR_30_384_PSNR_bg ' --load_model {}".format(gpu, dataset_path, mode, commit, model_path)
 

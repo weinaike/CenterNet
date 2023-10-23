@@ -170,7 +170,7 @@ class PointOTF(data.Dataset):
           bg_path = path_json["background_val"]
         files = glob.glob(path + "/*.npy")
         for file in files:
-          json_file = os.path.join(path,file[:-4]+".json")
+          json_file = file[:-4]+".json"
           with open(json_file) as f:
             targets = json.load(f)
             objs_num = len(targets)
@@ -181,6 +181,14 @@ class PointOTF(data.Dataset):
             use = True
           if self.data_mode == "double" and objs_num ==2:
             use = True
+            if self.split != "train" and self.opt.dist > 0:
+              x1 = targets[0][1]
+              y1 = targets[0][2]
+              x2 = targets[1][1]
+              y2 = targets[1][2]
+              dist = math.sqrt((x1-x2)**2+(y1-y2)**2)
+              if dist < self.opt.dist  or  dist > self.opt.dist + 10 :
+                use = False            
           if use:
             self.imgs.append(os.path.join(path,file))
             self.targets.append(json_file)
@@ -189,8 +197,14 @@ class PointOTF(data.Dataset):
         
         bg_files = glob.glob(bg_path + "/*.npy")
         for file in bg_files:
-          self.bgs.append(os.path.join(bg_path,file))
-          self.bgs_prmse.append(os.path.join(path,file[:-4]+".json"))
+          if self.split !=  "train":
+            if self.opt.bg == "sunny" and "-2" not in file:
+              continue
+            if self.opt.bg == "cloudy" and "-3" not in file:
+              continue
+
+          self.bgs.append(file)
+          self.bgs_prmse.append(file[:-4]+".json")
         
         otf_3d = np.load(self.otf_file)
         self.otf_list = np.pad(otf_3d, ((0,0),(64,64),(64,64)),mode='constant', constant_values=0)
@@ -261,10 +275,12 @@ class PointOTF(data.Dataset):
         h_s = (bgh - imgh)//2
         w_s = (bgw - imgw)//2
         psnr = random.choice(self.psnrs)
+
         if self.split == "train":
           psnr = random.randint(self.psnrs[0],self.psnrs[-1])
           h_s = random.choice(range(bgh - imgh))        
-          w_s = random.choice(range(bgw - imgw))      
+          w_s = random.choice(range(bgw - imgw)) 
+     
         h_e = h_s + imgh
         w_e = w_s + imgw
         crop_bg = bg[h_s:h_e, w_s:w_e]
@@ -299,7 +315,9 @@ class PointOTF(data.Dataset):
           # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
          
     obj_num = len(target)
-    
+    # for i in range(obj_num):
+    #   target[i][3] += 30
+    #   target[i][4] += 30
     anns = target
     for i in range(obj_num):
       if self.force_merge_labels:
