@@ -342,9 +342,11 @@ if __name__ == "__main__":
     pool.join()
     print("----over----")
 
-    pool = mp.Pool(processes=args.jobs)
+
+    random.seed(10000)
+    np.random.seed(10000)
     for i in range(val_num):
-        save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, save_path)
+        save_merge_point(i,otf_fft,labels, point_len, point_type, weight_mode, val_path)
         #pool.apply_async(save_merge_point, (i,otf_fft,labels, point_len, point_type, weight_mode, val_path))
     print("----start gen val date----")
     pool.close()

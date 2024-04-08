@@ -37,6 +37,9 @@ data/background
 data/psf_*
 data/merge
 src/debug
+data/PSF1110*
+data/sample.npy
+data/总结-单目标优化-条件数-30-60-90-120-20231101-1107
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

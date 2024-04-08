@@ -1,0 +1,58 @@
+
+
+
+cd src
+# train & test
+
+python main.py ctdet --exp_id seed_res50_psf_1110 --arch res_50 --dataset point --mse_loss \
+                    --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+                    --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise False --noise_sigma 0.02 \
+                    --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+                    --dataset_path ../data/train_val_1110_final.json  --data_mode all  --psnr 0 10 20 30 40 \
+                    --commit "scratch from imagenet, train all data [train_val_1110_final] with resnet50 psnr=[0 40], without noise" \
+                    --load_model ../exp/ctdet/seed_res50_psf_1110/logs_2023-11-10-11-35-54/model_epoch_30.pth
+
+#python main.py ctdet --exp_id seed_res50_all_scratch_new --arch res_50 --dataset point --mse_loss \
+#                    --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+#                    --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise True --noise_sigma 0.02 \
+#                    --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+#                    --dataset_path ../data/train_val_30_seed.json  --data_mode all  --psnr 1 5 10 20 40 \
+#                    --commit "scratch from random, train all data [train_val_30_seed] with resnet50 psnr=1 10 20 40, with noise"
+#                    #--load_model ../models/psnr1000/model_epoch_30_sup30.pth
+#                    #--force_merge_labels --commit "force merge label for all data, just eval local precise"
+
+# python main.py ctdet --exp_id seed_res50_all_scratch_new --arch res_50 --dataset point --mse_loss \
+#                     --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+#                     --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise True --noise_sigma 0.02 \
+#                     --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+#                     --dataset_path ../data/train_val_30_seed.json  --data_mode all  --psnr 1 5 10 20 40 \
+#                     --commit "scratch imagenet, train all data [train_val_30_seed] with resnet50 psnr=1 10 20 40, with noise" \
+# #                    #--load_model ../models/psnr1000/model_epoch_30_sup30.pth
+# #                    #--force_merge_labels --commit "force merge label for all data, just eval local precise"
+
+
+#python main.py ctdet --exp_id seed_res50_all_scratch_new --arch res_50 --dataset point --mse_loss \
+#                    --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+#                    --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise True --noise_sigma 0.02 \
+#                    --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+#                    --dataset_path ../data/train_val_60_seed.json  --data_mode all  --psnr 1 5 10 20 40 \
+#                    --commit "scratch imagenet, train all data [train_val_60_seed] with resnet50 psnr=1 10 20 40, with noise" 
+
+
+# python main.py ctdet --exp_id seed_res50_all_scratch_new --arch res_50 --dataset point --mse_loss \
+#                     --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+#                     --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise True --noise_sigma 0.02 \
+#                     --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+#                     --dataset_path ../data/train_val_90_seed.json  --data_mode all  --psnr 1 5 10 20 40 \
+#                     --commit "scratch imagenet, train all data [train_val_90_seed] with resnet50 psnr=1 10 20 40, with noise" 
+
+
+#python main.py ctdet --exp_id seed_res50_all_scratch_new --arch res_50 --dataset point --mse_loss \
+#                    --batch_size 64 --num_epochs 50 --lr_step '40' --gpus 1 --debug 0 \
+#                    --hm_weight 1e5 --labels 0 1 2 3 4 5  --have_noise True --noise_sigma 0.02 \
+#                    --sample_num 60000  --hm_gauss 3 --val_intervals 2 \
+#                    --dataset_path ../data/train_val_120_seed.json  --data_mode all  --psnr 1 5 10 20 40 \
+#                    --commit "scratch imagenet, train all data [train_val_120_seed] with resnet50 psnr=1 10 20 40, with noise" 
+
+
+cd ..

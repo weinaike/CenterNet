@@ -8,7 +8,7 @@ import math
 import time
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-debug = False
+debug = True
 def gaussian2D(shape, sigma=1):
     m, n = [(ss - 1.) / 2. for ss in shape]
     y, x = np.ogrid[-m:m+1,-n:n+1]
@@ -56,7 +56,8 @@ def get_true_background(rect_len: int):
             }
     if debug:
         bg_dict = {-2: "../../../data/background/one_sky_backgrouod.npy"}
-        # bg_dict = {-3: "../../../data/background/cloudy_sky_backgrouod.npy"}
+        # bg_dict = {-2: "../../../data/background/center_128.npy"}
+        # bg_dict = {-3: "../../../data/background/sunny_sky_backgrouod.npy"}
 
     bg_label = random.choice(list(bg_dict.keys()))
     try:
@@ -67,14 +68,19 @@ def get_true_background(rect_len: int):
 
     # n:样本数， c:光谱通道数， h: 高， w:宽
     n, c, h, w = sky_bg.shape
+    # if debug:
+    #     np.save("debug/background.npy",sky_bg[0,:,:,:])
+    #     return sky_bg[0,:,:,:], bg_label
     n_idx = random.choice(range(n))
     step = 1
     rect_len = rect_len * step
     h_s = random.choice(range(h - rect_len))
-    h_e = h_s + rect_len
     w_s = random.choice(range(w - rect_len))
+    if debug:
+        h_s = (h - rect_len) //2 
+        w_s = (w - rect_len) //2
+    h_e = h_s + rect_len    
     w_e = w_s + rect_len
-    
     rect_patchs = sky_bg[n_idx, :, h_s:h_e:step, w_s:w_e:step]
 
     if debug:
@@ -92,7 +98,9 @@ def gen_weight_and_label(wave_count, labels, weight_mode="onehot", have_noise = 
     weight =  np.zeros(wave_count)
 
     if weight_mode == "onehot":
+        weight += 0.5 
         weight[label] = 1.0
+        return weight, label
     elif weight_mode == "twohot":
         if label >= wave_count - 1:
             assert(0)
@@ -282,9 +290,14 @@ def gen_centers(rect_len:int, edge:int, obj_num:int):
             startx = random.randint(edge, rect_len - edge) 
             starty = random.randint(edge, rect_len - edge) 
             pts.append([startx, starty])
+    # if debug:
+    #     pts=[[192,192]]
+
     return pts
 
 def calc_prmse(rect_patchs):
+    # if debug:
+    #     return 0.5
     [c, h, w] = rect_patchs.shape
     tmp = 0
     for i in range(c):
@@ -300,6 +313,9 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
     if random.random() > 0.2:
         obj_num = 2
     
+    if debug:
+        obj_num = 2
+
     #方块目标， 其宽度rect_len, 要求奇数
     rect_len = 384
     if true_bg:
@@ -310,10 +326,13 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
 
     if bg_label < 0:
         prmse = calc_prmse(rect_patchs)
+
         # print("prmse:",prmse)
         # print("max:",np.max(rect_patchs))
         # print("norm:",np.sqrt(np.linalg.norm(rect_patchs.ravel())))
+        # print(prmse)
         rect_patchs = rect_patchs / prmse * 10**(-psnr/20)
+        # print("max:",np.max(rect_patchs))
     target = list()
    
 
@@ -341,7 +360,7 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         starty = pts[i][1]
         endx = startx + obj_len
         endy = starty + obj_len
-        rect_patchs[:,starty:endy, startx:endx] = point_patchs
+        rect_patchs[:,starty:endy, startx:endx] += point_patchs
         
         point_cx = (startx + endx) // 2
         point_cy = (starty + endy) // 2
@@ -361,7 +380,8 @@ def gen_merge_sample(otf_list, labels, obj_len, point_type="ones", weight_mode =
         target[i].append(rect_center[1])
         target[i].append(rect_center[0])
 
-    sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
+    # sample = (sample-np.min(sample))/(np.max(sample)-np.min(sample)) 
+    sample = sample / np.max(sample)
     [h,w] = sample.shape
 
     sample = sample.reshape(1,h,w) 

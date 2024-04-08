@@ -3,6 +3,7 @@
 import os
 import numpy as np
 import json
+import scipy.io as sciio
 # bg_dict = { -2: "../../../data/background/sunny_sky_backgrouod.npy",  
 #             -3: "../../../data/background/cloudy_sky_backgrouod.npy",
 #             -4: '../../../data/background/230822_1532.npy', 
@@ -38,12 +39,14 @@ def calc_prmse(rect_patchs):
 
 
 def gen_compressive_backgournd(otf_fft, sky_bg):
+
     [wave_count,h,w ] = sky_bg.shape
     sky_bg /= np.max(sky_bg)
     prmse = calc_prmse(sky_bg)
 
-    expand_h = 1024
-    expand_w = 1024       
+    # expand_h = 1024
+    # expand_w = 1024       
+    num , expand_h, expand_w = otf_fft.shape
     centery = expand_h//2
     centerx = expand_w//2
     pad_h_1 = (expand_h - h)//2
@@ -72,7 +75,11 @@ def save_background(id, key, otf_fft, path, sky_bg):
     np.save(os.path.join(path,"background_{}_{:05d}.npy".format(key,id)),background)
     with open(os.path.join(path,"background_{}_{:05d}.json".format(key,id)), "w") as fp:
         json.dump(prmse, fp)
-
+    # mat = dict()
+    # h,w = background.shape
+    # mat["compress_bg"] = background[h//2-192:h//2+192, w//2-192:w//2+192]
+    # mat["prmse"] = prmse
+    # sciio.savemat(os.path.join(path,"background_{}_{:05d}.mat".format(key,id)), mat)
 
 if __name__ == "__main__":
     import multiprocessing as mp
@@ -129,6 +136,7 @@ if __name__ == "__main__":
             }
     bg_dict_val = { -2: "../../../data/background/sunny_sky_backgrouod.npy",  
                 -3: "../../../data/background/cloudy_sky_backgrouod.npy",
+                #-2: "../../../data/background/one_sky_backgrouod.npy"
             }
     
     temp = dict()
@@ -143,7 +151,7 @@ if __name__ == "__main__":
         
         pool = mp.Pool(processes=args.jobs)
         for i in range(num):
-            # save_background(i,key,otf_fft,save_path, sky_bgs[i,:,:,:])
+            #save_background(i,key,otf_fft,save_path, sky_bgs[i,:,:,:])
             pool.apply_async(save_background, (i,key,otf_fft,save_path, sky_bgs[i,:,:,:]))
         print("---{}----".format(key))
         pool.close()
